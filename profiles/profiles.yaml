@@ -1,0 +1,148 @@
+# Profile Registry
+#
+# Archive Converter 프로파일 레지스트리
+# 모든 사용 가능한 프로파일 목록과 메타데이터
+#
+# Version: 1.0.0
+# Last Updated: 2025-12-11
+
+version: "1.0.0"
+updated_at: "2025-12-11T10:00:00Z"
+
+# 소스 프로파일
+sources:
+  - id: "google_sheets"
+    name: "Google Sheets Source"
+    path: "sources/google_sheets.yaml"
+    type: "google_sheets"
+    description: "Google Sheets API를 통한 데이터 읽기"
+    status: "active"
+    requires:
+      - "google-auth"
+      - "gspread"
+
+  - id: "excel_legacy"
+    name: "Excel File Source"
+    path: "sources/excel_legacy.yaml"
+    type: "excel"
+    description: "로컬 Excel 파일 읽기"
+    status: "active"
+    requires:
+      - "openpyxl"
+      - "pandas"
+
+# 매핑 프로파일
+mappings:
+  - id: "wsop_circuit_2024"
+    name: "WSOP Circuit 2024"
+    path: "mappings/wsop_circuit_2024.yaml"
+    version: "1.0.0"
+    description: "WSOP Circuit 2024 Google Sheet 변환 프로파일"
+    source_type: "google_sheets"
+    target_schema: "UDM v3.0.0"
+    status: "active"
+    use_cases:
+      - "WSOP Circuit 이벤트 핸드 데이터"
+      - "Google Sheets 기반 메타데이터"
+      - "타임코드 → 초 변환"
+    example_sheet_id: "1_RN_W_ZQclSZA0Iez6XniCXVtjkkd5HNZwiT6l-z6d4"
+
+  - id: "wsop_database"
+    name: "WSOP Database"
+    path: "mappings/wsop_database.yaml"
+    version: "1.0.0"
+    description: "WSOP Database Sheet (정규화된 데이터)"
+    source_type: "google_sheets"
+    target_schema: "UDM v3.0.0"
+    status: "active"
+    use_cases:
+      - "정규화된 Database Sheet"
+      - "UUID 직접 사용"
+      - "구조화된 플레이어 정보"
+    example_sheet_id: "1pUMPKe-OsKc-Xd8lH1cP9ctJO4hj3keXY5RwNFp2Mtk"
+
+  - id: "nas_folder_scan"
+    name: "NAS Folder Scan"
+    path: "mappings/nas_folder_scan.yaml"
+    version: "1.0.0"
+    description: "NAS 폴더 스캔 및 파일명 분석"
+    source_type: "filesystem"
+    target_schema: "UDM v3.0.0"
+    status: "active"
+    use_cases:
+      - "NAS 영상 파일 스캔"
+      - "파일명 패턴 분석"
+      - "메타데이터 추출 (ffprobe)"
+    example_path: "//10.10.100.122/docker/GGPNAs/ARCHIVE"
+
+  - id: "iconik_export"
+    name: "Iconik MAM Export"
+    path: "mappings/iconik_export.yaml"
+    version: "1.0.0"
+    description: "Iconik MAM 메타데이터 내보내기"
+    source_type: "iconik_api"
+    target_schema: "UDM v3.0.0"
+    status: "active"
+    use_cases:
+      - "Iconik MAM 시스템 메타데이터"
+      - "Marker → Segment 변환"
+      - "Iconik 커스텀 필드 매핑"
+    requires:
+      - "iconik-api-client"
+
+  - id: "catdv_export"
+    name: "CatDV MAM Export"
+    path: "mappings/catdv_export.yaml"
+    version: "1.0.0"
+    description: "CatDV MAM 메타데이터 내보내기"
+    source_type: "catdv_xml"
+    target_schema: "UDM v3.0.0"
+    status: "active"
+    use_cases:
+      - "CatDV MAM 시스템 메타데이터"
+      - "Subclip → Segment 변환"
+      - "CatDV User Fields 매핑"
+    requires:
+      - "xml-parser"
+
+# 정규화 딕셔너리
+dictionaries:
+  - id: "player_names"
+    name: "Player Names Dictionary"
+    path: "dictionaries/player_names.yaml"
+    version: "1.0.0"
+    description: "포커 플레이어 이름 정규화 딕셔너리"
+    status: "active"
+    total_entries: 45
+    total_aliases: 135
+    last_updated: "2025-12-11T10:00:00Z"
+
+# 프로파일 상태
+status_codes:
+  active: "사용 가능"
+  deprecated: "사용 중단 (호환성 유지)"
+  draft: "작성 중"
+  archived: "아카이브됨"
+
+# 사용 예시
+examples:
+  - name: "WSOP Circuit 변환"
+    command: |
+      archive-converter convert \
+        --profile mappings/wsop_circuit_2024.yaml \
+        --source sources/google_sheets.yaml \
+        --output output/circuit_2024.json
+
+  - name: "NAS 스캔"
+    command: |
+      archive-converter convert \
+        --profile mappings/nas_folder_scan.yaml \
+        --output output/nas_scan.json
+
+  - name: "프로파일 검증"
+    command: |
+      archive-converter profile validate wsop_circuit_2024
+
+  - name: "딕셔너리 검색"
+    command: |
+      archive-converter dict search player_names "negreanu"

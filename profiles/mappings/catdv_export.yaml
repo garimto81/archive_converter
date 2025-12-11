@@ -1,0 +1,303 @@
+# CatDV MAM Export 프로파일
+#
+# 출처: CatDV MAM 시스템 메타데이터 내보내기
+# 용도: CatDV에서 내보낸 메타데이터(XML/CSV)를 UDM으로 변환
+#
+# 주요 특징:
+# - CatDV Clip ID → Asset UUID 매핑
+# - CatDV 커스텀 필드 매핑
+# - Subclip 데이터 → Segment 변환
+# - Timecode 및 Frame 번호 지원
+#
+# Version: 1.0.0
+# Created: 2025-12-11
+
+profile:
+  name: "catdv_export"
+  version: "1.0.0"
+  description: "CatDV MAM 메타데이터 내보내기 프로파일"
+  created_at: "2025-12-11T10:00:00Z"
+  author: "Archive Team"
+
+source:
+  type: "catdv_xml"  # 또는 "csv"
+
+  # CatDV 데이터 소스
+  connection:
+    source_format: "xml"  # xml | csv
+    file_path: null  # 런타임에 지정
+
+  options:
+    parse_subclips: true    # Subclip 데이터 파싱
+    include_thumbnails: false
+    date_format: "iso8601"
+
+# CatDV 필드 매핑
+transform:
+  # Asset 레벨 매핑
+  asset_mapping:
+    # CatDV Clip ID → UUID 변환
+    asset_uuid:
+      type: "generate"
+      strategy: "from_catdv_id"
+      source_column: "Clip ID"
+
+    file_name:
+      type: "direct"
+      source_column: "Name"
+
+    file_path_nas:
+      type: "direct"
+      source_column: "Path"
+      fallback: null
+
+    asset_type:
+      type: "map"
+      source_column: "Media Type"
+      mapping:
+        "Master Clip": "MASTER"
+        "Subclip": "SUBCLIP"
+        "Sequence": "SUBCLIP"
+      default: "SUBCLIP"
+
+    # 이벤트 컨텍스트 (CatDV User Fields)
+    event_context:
+      type: "object"
+      fields:
+        year:
+          type: "direct"
+          source_column: "U1"  # User Field 1 = Year
+          transform: "to_int"
+
+        brand:
+          type: "direct"
+          source_column: "U2"  # User Field 2 = Brand
+
+        event_type:
+          type: "direct"
+          source_column: "U3"  # User Field 3 = Event Type
+          fallback: null
+
+        location:
+          type: "direct"
+          source_column: "U4"  # User Field 4 = Location
+          fallback: null
+
+        venue:
+          type: "direct"
+          source_column: "U5"  # User Field 5 = Venue
+          fallback: null
+
+        event_number:
+          type: "direct"
+          source_column: "U6"  # User Field 6 = Event Number
+          transform: "to_int"
+          fallback: null
+
+        buyin_usd:
+          type: "direct"
+          source_column: "U7"  # User Field 7 = Buy-in
+          transform: "to_int"
+          fallback: null
+
+        game_variant:
+          type: "direct"
+          source_column: "U8"  # User Field 8 = Game Variant
+          fallback: null
+
+    # 기술 사양
+    tech_spec:
+      type: "object"
+      fields:
+        fps:
+          type: "direct"
+          source_column: "Frame Rate"
+          transform: "to_float"
+          fallback: 29.97
+
+        resolution:
+          type: "concat"
+          source_columns:
+            - "Width"
+            - "Height"
+          format: "{0}x{1}"
+          fallback: null
+
+        duration_sec:
+          type: "direct"
+          source_column: "Duration"
+          transform: "frames_to_seconds"  # CatDV는 Frame 단위
+          fps: 29.97
+
+        file_size_mb:
+          type: "direct"
+          source_column: "File Size"
+          transform: "bytes_to_mb"
+          fallback: null
+
+        codec:
+          type: "direct"
+          source_column: "Video Format"
+          fallback: null
+
+    source_origin:
+      type: "constant"
+      value: "CatDV_MAM"
+
+    created_at:
+      type: "direct"
+      source_column: "Record Date"
+      transform: "to_datetime"
+
+    last_modified:
+      type: "direct"
+      source_column: "Modified Date"
+      transform: "to_datetime"
+
+  # Segment 레벨 매핑 (CatDV Subclips → Segments)
+  segment_mapping:
+    # Subclip ID → Segment UUID
+    segment_uuid:
+      type: "generate"
+      strategy: "from_subclip_id"
+      source_column: "Subclip ID"
+
+    segment_type:
+      type: "constant"
+      value: "HAND"
+
+    # CatDV는 Frame 번호 또는 Timecode 사용
+    time_in_sec:
+      type: "frames_or_timecode"
+      source_column: "In Point"
+      fps: 29.97
+      fallback: 0.0
+
+    time_out_sec:
+      type: "frames_or_timecode"
+      source_column: "Out Point"
+      fps: 29.97
+
+    title:
+      type: "direct"
+      source_column: "Subclip Name"
+      fallback: null
+
+    # User Fields (Subclip 레벨)
+    game_type:
+      type: "map"
+      source_column: "subclip.U1"
+      mapping:
+        "T": "TOURNAMENT"
+        "C": "CASH_GAME"
+      default: "TOURNAMENT"
+
+    rating:
+      type: "direct"
+      source_column: "subclip.U2"
+      transform: "to_int"
+      fallback: null
+
+    winner:
+      type: "direct"
+      source_column: "subclip.U3"
+      normalize: true
+      fallback: null
+
+    winning_hand:
+      type: "direct"
+      source_column: "subclip.U4"
+      fallback: null
+
+    losing_hand:
+      type: "direct"
+      source_column: "subclip.U5"
+      fallback: null
+
+    # CatDV Keywords → Tags
+    tags_action:
+      type: "catdv_keywords"
+      source_column: "Keywords"
+      filter: "action"
+      delimiter: ";"
+
+    tags_emotion:
+      type: "catdv_keywords"
+      source_column: "Keywords"
+      filter: "emotion"
+      delimiter: ";"
+
+    tags_content:
+      type: "catdv_keywords"
+      source_column: "Keywords"
+      filter: "content"
+      delimiter: ";"
+
+    description:
+      type: "direct"
+      source_column: "Notes"
+      fallback: null
+
+# CatDV 특수 처리
+catdv_specific:
+  # User Fields 매핑 정의
+  user_fields:
+    U1: "Year"
+    U2: "Brand"
+    U3: "Event Type"
+    U4: "Location"
+    U5: "Venue"
+    U6: "Event Number"
+    U7: "Buy-in"
+    U8: "Game Variant"
+    U9: "Game Type"
+    U10: "Rating"
+
+  # Subclip User Fields
+  subclip_user_fields:
+    U1: "Game Type"
+    U2: "Rating"
+    U3: "Winner"
+    U4: "Winning Hand"
+    U5: "Losing Hand"
+
+  # Catalog 정보 보존
+  catalog:
+    enabled: true
+    map_to_field: "source_origin"  # "CatDV_MAM_CatalogName"
+
+  # Time 형식 설정
+  time_format:
+    prefer: "timecode"  # timecode | frames
+    timecode_format: "hh:mm:ss:ff"
+
+normalization:
+  dictionary: "player_names.yaml"
+  fuzzy_threshold: 0.85
+  fallback: "title_case"
+
+export:
+  default_targets:
+    - name: "json_output"
+      type: "json"
+      path: "output/catdv_export/{date}/export.json"
+      indent: 2
+      ensure_ascii: false
+    - name: "csv_backup"
+      type: "csv"
+      path: "output/catdv_export/{date}/clips.csv"
+
+validation:
+  skip_rules: []
+  custom_rules:
+    - name: "catdv_clip_id_check"
+      enabled: true
+      description: "CatDV Clip ID가 유효한지 확인"
+      rule: "asset.asset_uuid is not None"
+      severity: "error"
+
+    - name: "subclip_parent_check"
+      enabled: true
+      description: "Subclip이 유효한 부모 Clip을 참조하는지 확인"
+      rule: "segment.parent_asset_uuid in asset_ids"
+      severity: "warning"

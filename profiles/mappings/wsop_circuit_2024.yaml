@@ -1,0 +1,260 @@
+# WSOP Circuit 2024 Google Sheet 변환 프로파일
+#
+# 출처: Google Sheets "WSOP Circuit 2024"
+# Sheet ID: 1_RN_W_ZQclSZA0Iez6XniCXVtjkkd5HNZwiT6l-z6d4
+# 용도: WSOP Circuit 이벤트의 핸드 데이터를 UDM으로 변환
+#
+# 주요 특징:
+# - 타임코드 → 초 변환 (29.97 fps)
+# - 플레이어 이름 정규화
+# - 파일명에서 연도/시리즈 추출
+#
+# Version: 1.0.0
+# Created: 2025-12-11
+
+profile:
+  name: "wsop_circuit_2024"
+  version: "1.0.0"
+  description: "WSOP Circuit 2024 Google Sheet 변환 프로파일"
+  created_at: "2025-12-11T10:00:00Z"
+  author: "Archive Team"
+
+# 소스 설정 (참조용)
+source:
+  type: "google_sheets"
+  sheet_id: "1_RN_W_ZQclSZA0Iez6XniCXVtjkkd5HNZwiT6l-z6d4"
+  options:
+    header_row: 1
+    skip_rows: 0
+
+# 변환 규칙
+transform:
+  # Asset 레벨 매핑
+  asset_mapping:
+    # UUID 자동 생성 (파일 내용 기반 해시)
+    asset_uuid:
+      type: "generate"
+      strategy: "content_hash"  # 또는 "file_hash", "uuid4"
+
+    # 파일명 직접 매핑
+    file_name:
+      type: "direct"
+      source_column: "File Name"
+
+    # Asset 유형 (기본값)
+    asset_type:
+      type: "constant"
+      value: "SUBCLIP"
+
+    # 이벤트 컨텍스트 (중첩 객체)
+    event_context:
+      type: "object"
+      fields:
+        # 연도: 파일명에서 정규식 추출
+        year:
+          type: "extract"
+          source_column: "File Name"
+          pattern: "\\b(20\\d{2})\\b"  # 2000-2099
+          transform: "to_int"
+          fallback: 2024
+
+        # 브랜드: 파일명에서 시리즈 코드 추출
+        brand:
+          type: "extract"
+          source_column: "File Name"
+          pattern: "(WSOP[CEP]?|HCL|PAD)"
+          transform: "brand_normalize"  # WSOPC → WSOPC, WSOPE → WSOPE
+          fallback: "WSOPC"
+
+        # 이벤트 유형
+        event_type:
+          type: "constant"
+          value: "CIRCUIT"
+
+        # 장소: Location 컬럼 직접 매핑
+        location:
+          type: "direct"
+          source_column: "Location"
+          fallback: "Unknown"
+
+        # 게임 종류
+        game_variant:
+          type: "map"
+          source_column: "Game"
+          mapping:
+            "NLH": "NLH"
+            "No Limit Hold'em": "NLH"
+            "PLO": "PLO"
+            "Pot Limit Omaha": "PLO"
+            "HORSE": "HORSE"
+            "Mixed": "MIXED"
+          default: "NLH"
+
+    # 기술 사양
+    tech_spec:
+      type: "object"
+      fields:
+        fps:
+          type: "constant"
+          value: 29.97
+
+    # 데이터 출처
+    source_origin:
+      type: "constant"
+      value: "GoogleSheet_Circuit_2024"
+
+  # Segment 레벨 매핑
+  segment_mapping:
+    # Segment UUID 생성
+    segment_uuid:
+      type: "generate"
+      strategy: "uuid4"
+
+    # Segment 유형
+    segment_type:
+      type: "constant"
+      value: "HAND"
+
+    # 시작 시간 (타임코드 → 초)
+    time_in_sec:
+      type: "timecode"
+      source_column: "TC In"
+      fps: 29.97
+      fallback: 0.0
+
+    # 종료 시간 (타임코드 → 초)
+    time_out_sec:
+      type: "timecode"
+      source_column: "TC Out"
+      fps: 29.97
+      fallback: null  # 필수 필드이므로 null이면 에러
+
+    # 핸드 제목
+    title:
+      type: "direct"
+      source_column: "Title"
+      fallback: null
+
+    # 게임 타입
+    game_type:
+      type: "enum"
+      source_column: "Type"
+      mapping:
+        "T": "TOURNAMENT"
+        "Tournament": "TOURNAMENT"
+        "C": "CASH_GAME"
+        "Cash": "CASH_GAME"
+      default: "TOURNAMENT"
+
+    # 별점
+    rating:
+      type: "direct"
+      source_column: "Rating"
+      transform: "to_int"
+      fallback: null
+
+    # 승자
+    winner:
+      type: "direct"
+      source_column: "Winner"
+      normalize: true  # 이름 정규화 활성화
+      fallback: null
+
+    # 승리 패
+    winning_hand:
+      type: "direct"
+      source_column: "Winning Hand"
+      fallback: null
+
+    # 패배 패
+    losing_hand:
+      type: "direct"
+      source_column: "Losing Hand"
+      fallback: null
+
+    # 플레이어 배열 (구조화)
+    players:
+      type: "array"
+      source_columns:
+        - "Player 1"
+        - "Player 2"
+        - "Player 3"
+        - "Player 4"
+      normalize: true           # 이름 정규화
+      remove_empty: true        # 빈 문자열 제거
+      transform: "player_object"  # PlayerInHand 객체로 변환
+
+    # 액션 태그 (문자열 분리)
+    tags_action:
+      type: "split"
+      source_column: "Tags"
+      delimiter: ","
+      trim: true
+      to_lowercase: true
+      remove_empty: true
+
+    # 감정 태그
+    tags_emotion:
+      type: "split"
+      source_column: "Emotion"
+      delimiter: ","
+      trim: true
+      to_lowercase: true
+      remove_empty: true
+
+    # 올인 시점
+    all_in_stage:
+      type: "map"
+      source_column: "All-in Stage"
+      mapping:
+        "Preflop": "preflop"
+        "Flop": "flop"
+        "Turn": "turn"
+        "River": "river"
+        "None": "none"
+        "": "none"
+      default: "none"
+
+    # 설명
+    description:
+      type: "direct"
+      source_column: "Description"
+      fallback: null
+
+# 정규화 설정
+normalization:
+  # 플레이어 이름 정규화 딕셔너리
+  dictionary: "player_names.yaml"
+  fuzzy_threshold: 0.85  # 유사도 임계값
+  fallback: "title_case"  # 매칭 실패 시 Title Case 적용
+
+# 내보내기 기본 설정
+export:
+  default_targets:
+    - name: "json_output"
+      type: "json"
+      path: "output/wsop_circuit_2024/{date}/export.json"
+      indent: 2
+      ensure_ascii: false
+    - name: "csv_backup"
+      type: "csv"
+      path: "output/wsop_circuit_2024/{date}/segments.csv"
+
+# 검증 규칙
+validation:
+  # 건너뛸 검증 규칙
+  skip_rules: []
+
+  # 커스텀 검증 규칙
+  custom_rules:
+    - name: "circuit_year_check"
+      enabled: true
+      description: "연도가 2020-2025 범위인지 확인"
+      rule: "asset.event_context.year >= 2020 and asset.event_context.year <= 2025"
+      severity: "warning"
+
+    - name: "timecode_range_check"
+      enabled: true
+      description: "타임코드가 유효 범위 내인지 확인"
+      rule: "segment.time_out_sec > segment.time_in_sec"
+      severity: "error"

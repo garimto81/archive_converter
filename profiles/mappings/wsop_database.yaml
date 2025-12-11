@@ -1,0 +1,410 @@
+# WSOP Database Sheet 변환 프로파일
+#
+# 출처: Google Sheets "WSOP Database"
+# Sheet ID: 1pUMPKe-OsKc-Xd8lH1cP9ctJO4hj3keXY5RwNFp2Mtk
+# 용도: 정규화된 Database Sheet 데이터를 UDM으로 변환
+#
+# 주요 특징:
+# - UUID 직접 사용 (이미 Database에 존재)
+# - 초 단위 시간 직접 사용 (타임코드 변환 불필요)
+# - Boolean 플래그 직접 매핑
+# - 구조화된 플레이어 정보
+#
+# Version: 1.0.0
+# Created: 2025-12-11
+
+profile:
+  name: "wsop_database"
+  version: "1.0.0"
+  description: "WSOP Database Sheet 변환 프로파일 (정규화된 데이터)"
+  created_at: "2025-12-11T10:00:00Z"
+  author: "Archive Team"
+
+source:
+  type: "google_sheets"
+  sheet_id: "1pUMPKe-OsKc-Xd8lH1cP9ctJO4hj3keXY5RwNFp2Mtk"
+  options:
+    header_row: 1
+    skip_rows: 0
+
+transform:
+  # Asset 레벨 매핑
+  asset_mapping:
+    # UUID 직접 사용 (Database에서 생성된 UUID)
+    asset_uuid:
+      type: "direct"
+      source_column: "Asset UUID"
+      transform: "to_uuid"
+
+    file_name:
+      type: "direct"
+      source_column: "File Name"
+
+    file_path_rel:
+      type: "direct"
+      source_column: "File Path Relative"
+      fallback: null
+
+    file_path_nas:
+      type: "direct"
+      source_column: "File Path NAS"
+      fallback: null
+
+    asset_type:
+      type: "enum"
+      source_column: "Asset Type"
+      mapping:
+        "STREAM": "STREAM"
+        "SUBCLIP": "SUBCLIP"
+        "HAND_CLIP": "HAND_CLIP"
+        "MASTER": "MASTER"
+        "CLEAN": "CLEAN"
+      default: "SUBCLIP"
+
+    # 이벤트 컨텍스트
+    event_context:
+      type: "object"
+      fields:
+        year:
+          type: "direct"
+          source_column: "Year"
+          transform: "to_int"
+
+        brand:
+          type: "direct"
+          source_column: "Brand"
+
+        event_type:
+          type: "direct"
+          source_column: "Event Type"
+          fallback: null
+
+        location:
+          type: "direct"
+          source_column: "Location"
+          fallback: null
+
+        venue:
+          type: "direct"
+          source_column: "Venue"
+          fallback: null
+
+        event_number:
+          type: "direct"
+          source_column: "Event Number"
+          transform: "to_int"
+          fallback: null
+
+        buyin_usd:
+          type: "direct"
+          source_column: "Buyin USD"
+          transform: "to_int"
+          fallback: null
+
+        game_variant:
+          type: "direct"
+          source_column: "Game Variant"
+          fallback: null
+
+        is_high_roller:
+          type: "direct"
+          source_column: "Is High Roller"
+          transform: "to_bool"
+          fallback: false
+
+        is_super_high_roller:
+          type: "direct"
+          source_column: "Is Super High Roller"
+          transform: "to_bool"
+          fallback: false
+
+        is_final_table:
+          type: "direct"
+          source_column: "Is Final Table"
+          transform: "to_bool"
+          fallback: false
+
+        season:
+          type: "direct"
+          source_column: "Season"
+          transform: "to_int"
+          fallback: null
+
+        episode:
+          type: "direct"
+          source_column: "Episode"
+          transform: "to_int"
+          fallback: null
+
+        episode_title:
+          type: "direct"
+          source_column: "Episode Title"
+          fallback: null
+
+    # 기술 사양
+    tech_spec:
+      type: "object"
+      fields:
+        fps:
+          type: "direct"
+          source_column: "FPS"
+          transform: "to_float"
+          fallback: 29.97
+
+        resolution:
+          type: "direct"
+          source_column: "Resolution"
+          fallback: null
+
+        duration_sec:
+          type: "direct"
+          source_column: "Duration Sec"
+          transform: "to_float"
+          fallback: null
+
+        file_size_mb:
+          type: "direct"
+          source_column: "File Size MB"
+          transform: "to_float"
+          fallback: null
+
+        codec:
+          type: "direct"
+          source_column: "Codec"
+          fallback: null
+
+    # 파일명 메타데이터
+    file_name_meta:
+      type: "object"
+      fields:
+        code_prefix:
+          type: "direct"
+          source_column: "Code Prefix"
+          fallback: null
+
+        year_code:
+          type: "direct"
+          source_column: "Year Code"
+          fallback: null
+
+        sequence_num:
+          type: "direct"
+          source_column: "Sequence Num"
+          transform: "to_int"
+          fallback: null
+
+        clip_type:
+          type: "direct"
+          source_column: "Clip Type"
+          fallback: null
+
+        raw_description:
+          type: "direct"
+          source_column: "Raw Description"
+          fallback: null
+
+    source_origin:
+      type: "constant"
+      value: "GoogleSheet_Database"
+
+    created_at:
+      type: "direct"
+      source_column: "Created At"
+      transform: "to_datetime"
+      fallback: null
+
+    last_modified:
+      type: "direct"
+      source_column: "Last Modified"
+      transform: "to_datetime"
+      fallback: null
+
+  # Segment 레벨 매핑
+  segment_mapping:
+    # Segment UUID 직접 사용
+    segment_uuid:
+      type: "direct"
+      source_column: "Segment UUID"
+      transform: "to_uuid"
+
+    segment_type:
+      type: "direct"
+      source_column: "Segment Type"
+      fallback: "HAND"
+
+    # 시간 (초 단위 직접 사용)
+    time_in_sec:
+      type: "direct"
+      source_column: "Time In Sec"
+      transform: "to_float"
+
+    time_out_sec:
+      type: "direct"
+      source_column: "Time Out Sec"
+      transform: "to_float"
+
+    title:
+      type: "direct"
+      source_column: "Title"
+      fallback: null
+
+    game_type:
+      type: "direct"
+      source_column: "Game Type"
+      fallback: "TOURNAMENT"
+
+    rating:
+      type: "direct"
+      source_column: "Rating"
+      transform: "to_int"
+      fallback: null
+
+    winner:
+      type: "direct"
+      source_column: "Winner"
+      normalize: true
+      fallback: null
+
+    winning_hand:
+      type: "direct"
+      source_column: "Winning Hand"
+      fallback: null
+
+    losing_hand:
+      type: "direct"
+      source_column: "Losing Hand"
+      fallback: null
+
+    # 플레이어 배열 (JSON 파싱)
+    players:
+      type: "json"
+      source_column: "Players JSON"
+      fallback: null
+
+    # 태그 배열 (JSON 파싱 또는 문자열 분리)
+    tags_action:
+      type: "json"
+      source_column: "Tags Action JSON"
+      fallback_column: "Tags Action"
+      fallback_delimiter: ","
+
+    tags_emotion:
+      type: "json"
+      source_column: "Tags Emotion JSON"
+      fallback_column: "Tags Emotion"
+      fallback_delimiter: ","
+
+    tags_content:
+      type: "json"
+      source_column: "Tags Content JSON"
+      fallback_column: "Tags Content"
+      fallback_delimiter: ","
+
+    # 상황 플래그
+    situation_flags:
+      type: "object"
+      fields:
+        is_cooler:
+          type: "direct"
+          source_column: "Is Cooler"
+          transform: "to_bool"
+          fallback: false
+
+        is_badbeat:
+          type: "direct"
+          source_column: "Is Badbeat"
+          transform: "to_bool"
+          fallback: false
+
+        is_suckout:
+          type: "direct"
+          source_column: "Is Suckout"
+          transform: "to_bool"
+          fallback: false
+
+        is_bluff:
+          type: "direct"
+          source_column: "Is Bluff"
+          transform: "to_bool"
+          fallback: false
+
+        is_hero_call:
+          type: "direct"
+          source_column: "Is Hero Call"
+          transform: "to_bool"
+          fallback: false
+
+        is_hero_fold:
+          type: "direct"
+          source_column: "Is Hero Fold"
+          transform: "to_bool"
+          fallback: false
+
+        is_river_killer:
+          type: "direct"
+          source_column: "Is River Killer"
+          transform: "to_bool"
+          fallback: false
+
+    all_in_stage:
+      type: "direct"
+      source_column: "All In Stage"
+      fallback: "none"
+
+    runout_type:
+      type: "direct"
+      source_column: "Runout Type"
+      fallback: null
+
+    adjective:
+      type: "direct"
+      source_column: "Adjective"
+      fallback: null
+
+    board:
+      type: "direct"
+      source_column: "Board"
+      fallback: null
+
+    event_stage:
+      type: "direct"
+      source_column: "Event Stage"
+      fallback: null
+
+    hand_description:
+      type: "direct"
+      source_column: "Hand Description"
+      fallback: null
+
+    is_dirty:
+      type: "direct"
+      source_column: "Is Dirty"
+      transform: "to_bool"
+      fallback: false
+
+    description:
+      type: "direct"
+      source_column: "Description"
+      fallback: null
+
+normalization:
+  dictionary: "player_names.yaml"
+  fuzzy_threshold: 0.85
+  fallback: "title_case"
+
+export:
+  default_targets:
+    - name: "json_output"
+      type: "json"
+      path: "output/wsop_database/{date}/export.json"
+      indent: 2
+      ensure_ascii: false
+
+validation:
+  skip_rules: []
+  custom_rules:
+    - name: "uuid_format_check"
+      enabled: true
+      description: "UUID 형식 검증"
+      rule: "is_valid_uuid(asset.asset_uuid) and is_valid_uuid(segment.segment_uuid)"
+      severity: "error"

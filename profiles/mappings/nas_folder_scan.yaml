@@ -1,0 +1,336 @@
+# NAS 폴더 스캔 프로파일
+#
+# 출처: NAS 파일 시스템 스캔
+# 경로: //10.10.100.122/docker/GGPNAs/ARCHIVE
+# 용도: NAS에 저장된 영상 파일을 스캔하여 UDM으로 변환
+#
+# 주요 특징:
+# - 파일명 패턴 분석 (WCLA24-15.mp4, WP23-PE-01.mp4 등)
+# - 폴더 경로에서 브랜드/이벤트 유형 추론
+# - 파일 메타데이터 추출 (크기, 코덱, 해상도)
+#
+# Version: 1.0.0
+# Created: 2025-12-11
+
+profile:
+  name: "nas_folder_scan"
+  version: "1.0.0"
+  description: "NAS 폴더 스캔 프로파일 (파일명 기반 메타데이터 추출)"
+  created_at: "2025-12-11T10:00:00Z"
+  author: "Archive Team"
+
+source:
+  type: "filesystem"
+
+  # 스캔 경로 설정
+  connection:
+    root_path: "//10.10.100.122/docker/GGPNAs/ARCHIVE"
+    scan_mode: "recursive"  # recursive | flat
+
+  # 파일 필터
+  options:
+    patterns:
+      - "**/*.mp4"
+      - "**/*.mov"
+      - "**/*.mxf"
+      - "**/*.mkv"
+    exclude_patterns:
+      - "**/.DS_Store"
+      - "**/Thumbs.db"
+      - "**/_*"  # 언더스코어로 시작하는 파일 제외
+
+    # 파일 메타데이터 추출 옵션
+    extract_metadata: true
+    use_ffprobe: true  # ffprobe로 기술 사양 추출
+
+transform:
+  # Asset 레벨 매핑
+  asset_mapping:
+    # UUID 생성 (파일 해시 기반)
+    asset_uuid:
+      type: "generate"
+      strategy: "file_hash"  # 파일 내용 해시 → UUID
+
+    # 파일명 추출
+    file_name:
+      type: "extract"
+      source: "path"
+      pattern: "[^/\\\\]+$"  # 경로에서 파일명만 추출
+
+    # 상대 경로
+    file_path_rel:
+      type: "extract"
+      source: "path"
+      pattern: "ARCHIVE/(.+)$"
+      group: 1
+
+    # 전체 경로
+    file_path_nas:
+      type: "direct"
+      source: "path"
+
+    # Asset 유형 추론 (폴더명 기반)
+    asset_type:
+      type: "infer"
+      source: "path"
+      mapping:
+        "STREAM": "STREAM"
+        "SUBCLIP": "SUBCLIP"
+        "Hand Clip": "HAND_CLIP"
+        "Mastered": "MASTER"
+        "Clean": "CLEAN"
+        "NO COMMENTARY": "NO_COMMENTARY"
+        "Generic": "GENERIC"
+        "MOVs": "MOV"
+        "MXFs": "MXF"
+      default: "SUBCLIP"
+
+    # 이벤트 컨텍스트 (파일명 + 경로 분석)
+    event_context:
+      type: "object"
+      fields:
+        # 연도: 파일명 또는 경로에서 추출
+        year:
+          type: "infer"
+          sources:
+            - type: "extract"
+              source: "filename"
+              pattern: "\\b(20\\d{2})\\b"
+              transform: "to_int"
+            - type: "extract"
+              source: "path"
+              pattern: "/(20\\d{2})/"
+              transform: "to_int"
+          fallback: 2024
+
+        # 브랜드: 경로에서 추론
+        brand:
+          type: "infer"
+          source: "path"
+          mapping:
+            "WSOP Bracelet Event": "WSOP"
+            "WSOP Circuit Event": "WSOPC"
+            "WSOP ARCHIVE": "WSOP"
+            "HCL": "HCL"
+            "PAD": "PAD"
+            "GGMillions": "GGMillions"
+            "MPP": "MPP"
+            "GOG": "GOG"
+          fallback: "OTHER"
+
+        # 이벤트 유형: 경로에서 추론
+        event_type:
+          type: "infer"
+          source: "path"
+          mapping:
+            "Bracelet Event": "BRACELET"
+            "Circuit Event": "CIRCUIT"
+            "ARCHIVE": "ARCHIVE"
+            "HCL": "CASH_GAME_SHOW"
+            "PAD": "CASH_GAME_SHOW"
+          fallback: null
+
+        # 장소: 파일명 또는 경로에서 추출
+        location:
+          type: "infer"
+          source: "path"
+          mapping:
+            "Las Vegas": "Las Vegas"
+            "Paradise": "Paradise"
+            "LA": "Los Angeles"
+            "Los Angeles": "Los Angeles"
+            "Cyprus": "Cyprus"
+            "Rozvadov": "Rozvadov"
+          fallback: null
+
+        # 게임 종류: 파일명에서 추출
+        game_variant:
+          type: "extract"
+          source: "filename"
+          pattern: "-(nlh|plo|stud|horse|mixed|razz)-"
+          transform: "to_uppercase"
+          mapping:
+            "NLH": "NLH"
+            "PLO": "PLO"
+            "STUD": "STUD"
+            "HORSE": "HORSE"
+            "MIXED": "MIXED"
+            "RAZZ": "RAZZ"
+          fallback: null
+
+        # 하이롤러 여부: 파일명에서 "hr" 또는 "high-roller" 검색
+        is_high_roller:
+          type: "extract"
+          source: "filename"
+          pattern: "-(hr|high-roller)-"
+          transform: "to_bool"
+          fallback: false
+
+        # 슈퍼 하이롤러 여부
+        is_super_high_roller:
+          type: "extract"
+          source: "filename"
+          pattern: "-(shr|super-high-roller)-"
+          transform: "to_bool"
+          fallback: false
+
+        # 파이널 테이블 여부
+        is_final_table:
+          type: "extract"
+          source: "filename"
+          pattern: "-(ft|final-table)-"
+          transform: "to_bool"
+          fallback: false
+
+    # 기술 사양 (ffprobe 사용)
+    tech_spec:
+      type: "object"
+      fields:
+        fps:
+          type: "metadata"
+          source: "video.fps"
+          fallback: 29.97
+
+        resolution:
+          type: "metadata"
+          source: "video.resolution"
+          fallback: null
+
+        duration_sec:
+          type: "metadata"
+          source: "video.duration"
+          fallback: null
+
+        file_size_mb:
+          type: "metadata"
+          source: "file.size_mb"
+          fallback: null
+
+        codec:
+          type: "metadata"
+          source: "video.codec"
+          fallback: null
+
+    # 파일명 메타데이터 (파싱 함수 사용)
+    file_name_meta:
+      type: "parse_filename"
+      source: "filename"
+      patterns:
+        - name: "circuit_subclip"
+          pattern: "^(?P<code>WCLA)(?P<year>\\d{2})-(?P<num>\\d+)\\.(?P<ext>\\w+)$"
+        - name: "paradise_pe"
+          pattern: "^(?P<code>WP)(?P<year>\\d{2})-(?P<type>PE|ET|HB)-(?P<num>\\d+)\\.(?P<ext>\\w+)$"
+        - name: "paradise_subclip"
+          pattern: "^(?P<code>WP)(?P<year>\\d{2})-(?P<num>\\d+)\\.(?P<ext>\\w+)$"
+        - name: "pad_episode"
+          pattern: "^PAD_S(?P<season>\\d+)_EP(?P<episode>\\d+)_(?P<desc>.+)\\.(?P<ext>\\w+)$"
+        - name: "wsop_mastered"
+          pattern: "^(?P<num>\\d+)-wsop-(?P<year>\\d{4})-be-ev-(?P<event>\\d+)-(?P<buyin>\\d+k?)-(?P<game>nlh|plo|stud)-(?P<tags>.+)\\.(?P<ext>\\w+)$"
+        - name: "ggmillions"
+          pattern: "^(?P<date>\\d{6})_Super High Roller Poker FINAL TABLE with (?P<player>.+)\\.(?P<ext>\\w+)$"
+
+    source_origin:
+      type: "constant"
+      value: "NAS_Scan"
+
+    created_at:
+      type: "metadata"
+      source: "file.created_time"
+      fallback: null
+
+    last_modified:
+      type: "metadata"
+      source: "file.modified_time"
+      fallback: null
+
+  # Segment 레벨 매핑 (파일명 기반 단일 Segment 생성)
+  segment_mapping:
+    # 파일당 1개의 풀 Segment 생성
+    segment_uuid:
+      type: "generate"
+      strategy: "uuid4"
+
+    segment_type:
+      type: "constant"
+      value: "HAND"  # 또는 파일명에서 추론
+
+    # 전체 영상 = 1개 Segment
+    time_in_sec:
+      type: "constant"
+      value: 0.0
+
+    time_out_sec:
+      type: "metadata"
+      source: "video.duration"
+      fallback: null
+
+    # 핸드 설명: 파일명에서 추출
+    hand_description:
+      type: "extract"
+      source: "filename"
+      pattern: "-(.*?)\\.[^.]+$"  # 확장자 제외한 마지막 부분
+      fallback: null
+
+    # 게임 타입: 기본값 (WSOP = Tournament)
+    game_type:
+      type: "constant"
+      value: "TOURNAMENT"
+
+    # 더티 플래그: 파일명에 "dirty" 포함 여부
+    is_dirty:
+      type: "extract"
+      source: "filename"
+      pattern: "-dirty-"
+      transform: "to_bool"
+      fallback: false
+
+# 후처리 설정
+post_processing:
+  # 중복 제거 (같은 파일 해시)
+  deduplicate:
+    enabled: true
+    strategy: "file_hash"
+
+  # 메타데이터 캐싱
+  cache:
+    enabled: true
+    cache_file: ".nas_scan_cache.json"
+    ttl_hours: 24
+
+# 성능 옵션
+performance:
+  # 병렬 처리
+  parallel:
+    enabled: true
+    max_workers: 8
+
+  # 메타데이터 추출 타임아웃
+  metadata_timeout_sec: 10
+
+export:
+  default_targets:
+    - name: "json_output"
+      type: "json"
+      path: "output/nas_scan/{date}/assets.json"
+      indent: 2
+      ensure_ascii: false
+    - name: "csv_index"
+      type: "csv"
+      path: "output/nas_scan/{date}/file_index.csv"
+
+validation:
+  skip_rules:
+    - "segment_duration_range"  # NAS 스캔은 전체 영상이므로 길이 제한 무시
+
+  custom_rules:
+    - name: "file_exists_check"
+      enabled: true
+      description: "파일이 실제로 존재하는지 확인"
+      rule: "file.exists(asset.file_path_nas)"
+      severity: "error"
+
+    - name: "valid_extension_check"
+      enabled: true
+      description: "지원되는 확장자인지 확인"
+      rule: "asset.file_name.endswith(('.mp4', '.mov', '.mxf', '.mkv'))"
+      severity: "error"

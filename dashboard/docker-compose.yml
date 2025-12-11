@@ -1,0 +1,30 @@
+# Archive Converter Dashboard - Docker Compose
+# PRD-0010 기반 구성
+
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - dashboard-net
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - CORS_ORIGINS=http://localhost:3000
+      - DEBUG=true
+    networks:
+      - dashboard-net
+
+networks:
+  dashboard-net:
+    driver: bridge

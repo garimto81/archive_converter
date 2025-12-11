@@ -1,0 +1,390 @@
+# 플레이어 이름 정규화 딕셔너리
+#
+# 포커 플레이어 이름의 다양한 변형을 정규화된 이름으로 매핑합니다.
+#
+# 구조:
+#   - normalizations: 정규화된 이름 → 알려진 변형 리스트
+#   - rules: 자동 정규화 규칙
+#
+# Version: 1.0.0
+# Created: 2025-12-11
+# Last Updated: 2025-12-11
+
+version: "1.0.0"
+updated_at: "2025-12-11T10:00:00Z"
+
+# 정규화 매핑
+normalizations:
+  # === WSOP 레전드 ===
+  "Daniel Negreanu":
+    aliases:
+      - "D. Negreanu"
+      - "Negreanu"
+      - "Kid Poker"
+      - "DNegs"
+      - "Daniel"
+      - "D Negreanu"
+    metadata:
+      country: "Canada"
+      wsop_bracelets: 6
+      nickname: "Kid Poker"
+
+  "Phil Hellmuth":
+    aliases:
+      - "P. Hellmuth"
+      - "Hellmuth"
+      - "Poker Brat"
+      - "Phil H"
+      - "P Hellmuth"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 17
+      nickname: "Poker Brat"
+
+  "Phil Ivey":
+    aliases:
+      - "P. Ivey"
+      - "Ivey"
+      - "Tiger Woods of Poker"
+      - "Phil I"
+      - "P Ivey"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 10
+
+  "Doyle Brunson":
+    aliases:
+      - "D. Brunson"
+      - "Brunson"
+      - "Texas Dolly"
+      - "Doyle"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 10
+      nickname: "Texas Dolly"
+
+  "Johnny Chan":
+    aliases:
+      - "J. Chan"
+      - "Chan"
+      - "Orient Express"
+      - "Johnny C"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 10
+      nickname: "Orient Express"
+
+  # === 현대 프로 ===
+  "Jason Koon":
+    aliases:
+      - "J. Koon"
+      - "Koon"
+      - "Jason K"
+      - "J Koon"
+    metadata:
+      country: "USA"
+
+  "Stephen Chidwick":
+    aliases:
+      - "S. Chidwick"
+      - "Chidwick"
+      - "Stevie"
+      - "S Chidwick"
+    metadata:
+      country: "UK"
+
+  "Justin Bonomo":
+    aliases:
+      - "J. Bonomo"
+      - "Bonomo"
+      - "ZeeJustin"
+      - "Justin B"
+    metadata:
+      country: "USA"
+
+  "Bryn Kenney":
+    aliases:
+      - "B. Kenney"
+      - "Kenney"
+      - "Bryn K"
+    metadata:
+      country: "USA"
+
+  "Dan Smith":
+    aliases:
+      - "D. Smith"
+      - "Smith"
+      - "Dan S"
+      - "Danny Smith"
+    metadata:
+      country: "USA"
+
+  # === 여성 프로 ===
+  "Vanessa Selbst":
+    aliases:
+      - "V. Selbst"
+      - "Selbst"
+      - "Vanessa S"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 3
+
+  "Kristen Bicknell":
+    aliases:
+      - "K. Bicknell"
+      - "Bicknell"
+      - "Kristen B"
+    metadata:
+      country: "Canada"
+
+  # === 유럽 프로 ===
+  "Fedor Holz":
+    aliases:
+      - "F. Holz"
+      - "Holz"
+      - "Fedor"
+    metadata:
+      country: "Germany"
+
+  "Ole Schemion":
+    aliases:
+      - "O. Schemion"
+      - "Schemion"
+      - "Ole"
+    metadata:
+      country: "Germany"
+
+  "Dominik Nitsche":
+    aliases:
+      - "D. Nitsche"
+      - "Nitsche"
+      - "Dominik N"
+    metadata:
+      country: "Germany"
+
+  "Martin Jacobson":
+    aliases:
+      - "M. Jacobson"
+      - "Jacobson"
+      - "Martin J"
+    metadata:
+      country: "Sweden"
+
+  # === 온라인/스트리머 ===
+  "Doug Polk":
+    aliases:
+      - "D. Polk"
+      - "Polk"
+      - "WCGRider"
+      - "Doug P"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 3
+
+  "Tom Dwan":
+    aliases:
+      - "T. Dwan"
+      - "Dwan"
+      - "durrrr"
+      - "Tom D"
+    metadata:
+      country: "USA"
+      nickname: "durrrr"
+
+  "Antonio Esfandiari":
+    aliases:
+      - "A. Esfandiari"
+      - "Esfandiari"
+      - "The Magician"
+      - "Antonio E"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 3
+      nickname: "The Magician"
+
+  "Michael Mizrachi":
+    aliases:
+      - "M. Mizrachi"
+      - "Mizrachi"
+      - "The Grinder"
+      - "Mike Mizrachi"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 4
+      nickname: "The Grinder"
+
+  "Erik Seidel":
+    aliases:
+      - "E. Seidel"
+      - "Seidel"
+      - "Erik S"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 9
+
+  # === 추가 프로 (알파벳 순) ===
+  "Adrian Mateos":
+    aliases:
+      - "A. Mateos"
+      - "Mateos"
+      - "Adrian M"
+    metadata:
+      country: "Spain"
+
+  "Alex Foxen":
+    aliases:
+      - "A. Foxen"
+      - "Foxen"
+      - "Alex F"
+    metadata:
+      country: "USA"
+
+  "Anatoly Filatov":
+    aliases:
+      - "A. Filatov"
+      - "Filatov"
+      - "Anatoly F"
+    metadata:
+      country: "Russia"
+
+  "Ben Yu":
+    aliases:
+      - "B. Yu"
+      - "Yu"
+      - "Ben Y"
+    metadata:
+      country: "USA"
+
+  "Chris Moneymaker":
+    aliases:
+      - "C. Moneymaker"
+      - "Moneymaker"
+      - "Chris M"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 1
+
+  "David Peters":
+    aliases:
+      - "D. Peters"
+      - "Peters"
+      - "David P"
+    metadata:
+      country: "USA"
+
+  "Isaac Haxton":
+    aliases:
+      - "I. Haxton"
+      - "Haxton"
+      - "Ike Haxton"
+      - "Isaac H"
+    metadata:
+      country: "USA"
+
+  "Jake Schindler":
+    aliases:
+      - "J. Schindler"
+      - "Schindler"
+      - "Jake S"
+    metadata:
+      country: "USA"
+
+  "Nick Petrangelo":
+    aliases:
+      - "N. Petrangelo"
+      - "Petrangelo"
+      - "Nick P"
+    metadata:
+      country: "USA"
+
+  "Sam Soverel":
+    aliases:
+      - "S. Soverel"
+      - "Soverel"
+      - "Sam S"
+    metadata:
+      country: "USA"
+
+  "Shaun Deeb":
+    aliases:
+      - "S. Deeb"
+      - "Deeb"
+      - "Shaun D"
+    metadata:
+      country: "USA"
+      wsop_bracelets: 5
+
+  "Scott Seiver":
+    aliases:
+      - "S. Seiver"
+      - "Seiver"
+      - "Scott S"
+    metadata:
+      country: "USA"
+
+  "Seth Davies":
+    aliases:
+      - "S. Davies"
+      - "Davies"
+      - "Seth D"
+    metadata:
+      country: "USA"
+
+# 자동 정규화 규칙
+rules:
+  # 규칙 1: 이니셜 확장 (D. Negreanu → Daniel Negreanu)
+  - name: "expand_initial"
+    pattern: "^(\\w)\\.\\s*(\\w+)$"
+    description: "이니셜 + 성 패턴을 정규화된 이름으로 변환"
+    action: "lookup"
+    enabled: true
+
+  # 규칙 2: 닉네임 제거 ("Phil \"Poker Brat\" Hellmuth" → "Phil Hellmuth")
+  - name: "remove_quoted_nickname"
+    pattern: "\"[^\"]+\""
+    description: "따옴표로 감싼 닉네임 제거"
+    action: "remove"
+    enabled: true
+
+  # 규칙 3: 중간 이니셜 제거 (John D. Smith → John Smith)
+  - name: "remove_middle_initial"
+    pattern: "^(\\w+)\\s+\\w\\.\\s+(\\w+)$"
+    description: "중간 이니셜 제거"
+    action: "extract"
+    extract_groups: [1, 2]
+    enabled: true
+
+  # 규칙 4: 소문자 → Title Case
+  - name: "title_case"
+    pattern: "^[a-z\\s]+$"
+    description: "전체 소문자를 Title Case로 변환"
+    action: "title_case"
+    enabled: true
+
+  # 규칙 5: 대문자 → Title Case (HELLMUTH → Hellmuth)
+  - name: "uppercase_to_title"
+    pattern: "^[A-Z]+$"
+    description: "전체 대문자를 Title Case로 변환"
+    action: "title_case"
+    enabled: true
+
+# Fuzzy 매칭 설정
+fuzzy_matching:
+  enabled: true
+  threshold: 0.85          # 유사도 임계값 (0.0-1.0)
+  algorithm: "levenshtein"  # levenshtein | jaro_winkler
+  max_candidates: 5        # 최대 후보 개수
+
+# 통계 (자동 업데이트)
+statistics:
+  total_canonical_names: 45
+  total_aliases: 135
+  last_updated: "2025-12-11T10:00:00Z"
+  update_frequency: "monthly"
+
+# 기여 가이드
+# 새 플레이어 추가 방법:
+#   1. 정규화된 풀네임을 키로 사용
+#   2. aliases에 알려진 모든 변형 추가
+#   3. metadata에 국가, WSOP 팔찌, 닉네임 추가 (선택)
+#   4. 알파벳 순으로 정렬 유지

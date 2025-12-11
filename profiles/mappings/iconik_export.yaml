@@ -1,0 +1,279 @@
+# Iconik MAM Export 프로파일
+#
+# 출처: Iconik MAM 시스템 메타데이터 내보내기
+# 용도: Iconik에서 내보낸 메타데이터를 UDM으로 변환
+#
+# 주요 특징:
+# - Iconik Asset ID → Asset UUID 매핑
+# - Iconik 커스텀 메타데이터 필드 매핑
+# - Marker 데이터 → Segment 변환
+# - Timecode 형식 지원
+#
+# Version: 1.0.0
+# Created: 2025-12-11
+
+profile:
+  name: "iconik_export"
+  version: "1.0.0"
+  description: "Iconik MAM 메타데이터 내보내기 프로파일"
+  created_at: "2025-12-11T10:00:00Z"
+  author: "Archive Team"
+
+source:
+  type: "iconik_api"  # 또는 "csv" (내보낸 CSV 파일)
+
+  # API 연결 설정
+  connection:
+    api_endpoint: "https://app.iconik.io/API"
+    auth_method: "app_token"
+    auth_env: "ICONIK_APP_TOKEN"
+
+  # 내보내기 옵션
+  options:
+    include_markers: true        # Marker 데이터 포함
+    include_transcriptions: false  # 자막 데이터 제외
+    include_thumbnails: false    # 썸네일 URL 제외
+    date_format: "iso8601"
+
+# Iconik 메타데이터 필드 매핑
+transform:
+  # Asset 레벨 매핑
+  asset_mapping:
+    # Iconik Asset ID → UUID 변환
+    asset_uuid:
+      type: "generate"
+      strategy: "from_iconik_id"  # Iconik ID를 UUID로 변환
+      source_column: "Asset ID"
+
+    file_name:
+      type: "direct"
+      source_column: "Title"  # Iconik에서는 Title 필드 사용
+
+    file_path_nas:
+      type: "direct"
+      source_column: "File Path"
+      fallback: null
+
+    asset_type:
+      type: "map"
+      source_column: "Asset Type"
+      mapping:
+        "Master": "MASTER"
+        "Subclip": "SUBCLIP"
+        "Proxy": "SUBCLIP"
+      default: "SUBCLIP"
+
+    # 이벤트 컨텍스트 (Iconik 커스텀 필드)
+    event_context:
+      type: "object"
+      fields:
+        year:
+          type: "direct"
+          source_column: "custom.Year"
+          transform: "to_int"
+
+        brand:
+          type: "direct"
+          source_column: "custom.Brand"
+
+        event_type:
+          type: "direct"
+          source_column: "custom.Event Type"
+          fallback: null
+
+        location:
+          type: "direct"
+          source_column: "custom.Location"
+          fallback: null
+
+        venue:
+          type: "direct"
+          source_column: "custom.Venue"
+          fallback: null
+
+        event_number:
+          type: "direct"
+          source_column: "custom.Event Number"
+          transform: "to_int"
+          fallback: null
+
+        buyin_usd:
+          type: "direct"
+          source_column: "custom.Buy-in"
+          transform: "to_int"
+          fallback: null
+
+        game_variant:
+          type: "direct"
+          source_column: "custom.Game Type"
+          fallback: null
+
+    # 기술 사양
+    tech_spec:
+      type: "object"
+      fields:
+        fps:
+          type: "direct"
+          source_column: "Frame Rate"
+          transform: "to_float"
+          fallback: 29.97
+
+        resolution:
+          type: "direct"
+          source_column: "Resolution"
+          fallback: null
+
+        duration_sec:
+          type: "direct"
+          source_column: "Duration"
+          transform: "duration_to_seconds"
+          fallback: null
+
+        file_size_mb:
+          type: "direct"
+          source_column: "File Size"
+          transform: "bytes_to_mb"
+          fallback: null
+
+        codec:
+          type: "direct"
+          source_column: "Video Codec"
+          fallback: null
+
+    source_origin:
+      type: "constant"
+      value: "Iconik_MAM"
+
+    created_at:
+      type: "direct"
+      source_column: "Date Created"
+      transform: "to_datetime"
+
+    last_modified:
+      type: "direct"
+      source_column: "Date Modified"
+      transform: "to_datetime"
+
+  # Segment 레벨 매핑 (Iconik Markers → Segments)
+  segment_mapping:
+    # Marker ID → Segment UUID
+    segment_uuid:
+      type: "generate"
+      strategy: "from_marker_id"
+      source_column: "Marker ID"
+
+    segment_type:
+      type: "map"
+      source_column: "Marker Type"
+      mapping:
+        "Hand": "HAND"
+        "Highlight": "HIGHLIGHT"
+        "Comment": "COMMENTARY"
+      default: "HAND"
+
+    # Iconik 타임코드 형식
+    time_in_sec:
+      type: "timecode"
+      source_column: "Marker In"
+      fps: 29.97
+
+    time_out_sec:
+      type: "timecode"
+      source_column: "Marker Out"
+      fps: 29.97
+
+    title:
+      type: "direct"
+      source_column: "Marker Name"
+      fallback: null
+
+    # 커스텀 메타데이터 (Marker 레벨)
+    game_type:
+      type: "map"
+      source_column: "marker.custom.Game Type"
+      mapping:
+        "Tournament": "TOURNAMENT"
+        "Cash": "CASH_GAME"
+      default: "TOURNAMENT"
+
+    rating:
+      type: "direct"
+      source_column: "marker.custom.Rating"
+      transform: "to_int"
+      fallback: null
+
+    winner:
+      type: "direct"
+      source_column: "marker.custom.Winner"
+      normalize: true
+      fallback: null
+
+    winning_hand:
+      type: "direct"
+      source_column: "marker.custom.Winning Hand"
+      fallback: null
+
+    losing_hand:
+      type: "direct"
+      source_column: "marker.custom.Losing Hand"
+      fallback: null
+
+    # Iconik 태그 → 배열 변환
+    tags_action:
+      type: "iconik_tags"
+      source_column: "marker.tags"
+      filter: "action"  # "action" 카테고리 태그만 추출
+
+    tags_emotion:
+      type: "iconik_tags"
+      source_column: "marker.tags"
+      filter: "emotion"
+
+    tags_content:
+      type: "iconik_tags"
+      source_column: "marker.tags"
+      filter: "content"
+
+    description:
+      type: "direct"
+      source_column: "Marker Description"
+      fallback: null
+
+# Iconik 특수 처리
+iconik_specific:
+  # Collection 처리
+  collections:
+    enabled: true
+    map_to_tags: true  # Collection을 tags_content에 추가
+
+  # Transcription 처리 (선택)
+  transcriptions:
+    enabled: false
+    map_to_field: "description"
+
+  # 계층 구조 보존
+  hierarchy:
+    enabled: true
+    parent_field: "parent_asset_uuid"
+
+normalization:
+  dictionary: "player_names.yaml"
+  fuzzy_threshold: 0.85
+  fallback: "title_case"
+
+export:
+  default_targets:
+    - name: "json_output"
+      type: "json"
+      path: "output/iconik_export/{date}/export.json"
+      indent: 2
+      ensure_ascii: false
+
+validation:
+  skip_rules: []
+  custom_rules:
+    - name: "iconik_id_check"
+      enabled: true
+      description: "Iconik Asset ID가 유효한지 확인"
+      rule: "len(asset.source_origin) > 0"
+      severity: "warning"
