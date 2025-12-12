@@ -1,5 +1,15 @@
 // API 클라이언트 기본 설정
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// 동적 API URL: 현재 호스트 기반으로 백엔드 연결 (외부 접속 지원)
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL
+  }
+  // 현재 호스트의 8000 포트로 연결
+  const { protocol, hostname } = window.location
+  return `${protocol}//${hostname}:8000`
+}
+
+const API_BASE_URL = getApiBaseUrl()
 
 export class ApiError extends Error {
   constructor(

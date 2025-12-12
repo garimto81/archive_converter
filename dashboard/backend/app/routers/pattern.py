@@ -11,11 +11,21 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from ..config import settings
+
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.models.udm import FILENAME_PATTERNS, parse_filename
+
+# NAS 서비스 import
+if settings.nas_use_real_data:
+    from ..services.nas_service import get_nas_service
+    _nas_service = get_nas_service(settings.nas_mount_path)
+else:
+    from ..services.mock_data import MockDataService
+    _nas_service = MockDataService()
 
 router = APIRouter(prefix="/pattern", tags=["Pattern Matching"])
 
@@ -103,6 +113,21 @@ class PatternDataStore:
         self._pattern_counts: dict[str, int] = {}  # pattern_name -> count
         self._unmatched_files: list[str] = []
         self._total_files: int = 0
+        self._initialized: bool = False
+
+    def initialize_from_nas_service(self):
+        """NAS 서비스에서 파일 목록을 가져와 초기화"""
+        if self._initialized:
+            return
+
+        # Mock 데이터에서 파일명 추출
+        try:
+            items = _nas_service.get_matching_items()
+            file_names = [item.file_name for item in items]
+            self.update_from_files(file_names)
+            self._initialized = True
+        except Exception as e:
+            print(f"Failed to initialize pattern store: {e}")
 
     def update_from_files(self, file_names: list[str]):
         """파일 목록에서 패턴 매칭 결과 업데이트"""
@@ -123,6 +148,8 @@ class PatternDataStore:
 
     def get_stats(self) -> PatternStatsResponse:
         """통계 반환"""
+        self.initialize_from_nas_service()
+
         matched = len(self._file_patterns)
         unmatched = len(self._unmatched_files)
         total = self._total_files or (matched + unmatched)
@@ -139,7 +166,18 @@ class PatternDataStore:
 
     def get_pattern_for_file(self, file_name: str) -> Optional[str]:
         """파일의 매칭된 패턴 반환"""
+        self.initialize_from_nas_service()
         return self._file_patterns.get(file_name)
+
+    def get_pattern_counts(self) -> dict[str, int]:
+        """패턴별 매칭 수 반환"""
+        self.initialize_from_nas_service()
+        return self._pattern_counts
+
+    def get_unmatched_files(self) -> list[str]:
+        """미매칭 파일 목록 반환"""
+        self.initialize_from_nas_service()
+        return self._unmatched_files
 
 
 # Global store instance
@@ -214,18 +252,6 @@ async def get_pattern_stats():
         - total_patterns: 전체 패턴 수
     """
     store = get_store()
-
-    # 데이터가 없으면 기본값 반환
-    if store._total_files == 0:
-        return PatternStatsResponse(
-            total_files=1374,
-            matched_files=1293,
-            unmatched_files=81,
-            match_rate=94.1,
-            total_patterns=len(FILENAME_PATTERNS),
-            avg_confidence=96.0,
-        )
-
     return store.get_stats()
 
 
@@ -242,10 +268,11 @@ async def get_pattern_list(
         offset: 시작 위치
     """
     store = get_store()
+    pattern_counts = store.get_pattern_counts()
 
     patterns = []
     for name, regex in FILENAME_PATTERNS.items():
-        count = store._pattern_counts.get(name, 0)
+        count = pattern_counts.get(name, 0)
         patterns.append(
             PatternInfo(
                 name=name,
@@ -279,6 +306,8 @@ async def get_unmatched_files(
         offset: 시작 위치
     """
     store = get_store()
+    unmatched_list = store.get_unmatched_files()
+    stats = store.get_stats()
 
     # Categorize unmatched files
     categories: dict[str, int] = {
@@ -288,7 +317,7 @@ async def get_unmatched_files(
     }
 
     files = []
-    for file_name in store._unmatched_files[offset : offset + limit]:
+    for file_name in unmatched_list[offset : offset + limit]:
         # Detect category
         if "–" in file_name or "—" in file_name:
             cat = "en-dash char"
@@ -308,8 +337,8 @@ async def get_unmatched_files(
             )
         )
 
-    total = len(store._unmatched_files)
-    percentage = (total / store._total_files * 100) if store._total_files > 0 else 0.0
+    total = len(unmatched_list)
+    percentage = (total / stats.total_files * 100) if stats.total_files > 0 else 0.0
 
     return UnmatchedFilesResponse(
         total_unmatched=total,
