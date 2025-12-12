@@ -60,30 +60,59 @@
 
 ### 2.1 NAS 저장소
 
-**위치**: `\\10.10.100.122\docker\GGPNAs\ARCHIVE\`
+**위치**: `Z:\` (마운트) / `\\10.10.100.122\docker\GGPNAs\`
 
-#### 폴더 구조
+**최종 스캔일**: 2025-12-12
+
+#### 폴더 구조 (전체)
 
 ```
-ARCHIVE/
-├── WSOP/
-│   ├── WSOP ARCHIVE (PRE-2016)/     # 역사적 자료
-│   ├── WSOP Bracelet Event/          # 브레이슬릿
-│   │   ├── WSOP-EUROPE/
-│   │   ├── WSOP-LAS VEGAS/
-│   │   └── WSOP-PARADISE/
-│   └── WSOP Circuit Event/           # 서킷
-│       ├── WSOP Super Ciruit/
-│       └── WSOP-Circuit/
-│           └── 2024 WSOP Circuit LA/
-│               ├── 2024 WSOP-C LA STREAM/
-│               └── 2024 WSOP-C LA SUBCLIP/  ← Circuit Sheet 대상
-├── HCL/
-├── PAD/
-├── GGMillions/
-├── MPP/
-└── GOG 최종/
+Z:\
+├── .isg/                              # 시스템 폴더
+│   └── d2de5d18-ee58-11ef-852e-da5f3e9a002a/
+├── Clips/                             # 클립 저장소
+├── Player Emotion  & ETC/             # 플레이어 감정/기타
+└── ARCHIVE/                           # 메인 아카이브
+    ├── GGMillions/                    # GGMillions 브랜드
+    ├── GOG 최종/                       # Game of Gold
+    │   ├── e01/ ~ e12/                # 12개 에피소드
+    ├── HCL/                           # Hustler Casino Live
+    │   ├── HCL Poker Clip/            # 클립
+    │   │   ├── 2023/
+    │   │   ├── 2024/
+    │   │   └── 2025/
+    │   └── SHOW, SERIES/              # 쇼/시리즈
+    ├── MPP/                           # ??? Poker
+    │   └── 2025 MPP Cyprus/           # 2025 사이프러스
+    │       ├── $1M GTD   $1K PokerOK Mystery Bounty/
+    │       ├── $2M GTD   $2K Luxon Pay Grand Final/
+    │       └── $5M GTD   $5K MPP Main Event/
+    ├── PAD/                           # Poker After Dark
+    │   ├── PAD S12/
+    │   └── PAD S13/
+    └── WSOP/                          # World Series of Poker
+        ├── WSOP ARCHIVE (PRE-2016)/   # 레거시 (1973~2016)
+        │   ├── WSOP 1973/
+        │   ├── WSOP 1978/ ~ WSOP 2016/
+        ├── WSOP Bracelet Event/       # 브레이슬릿 이벤트
+        │   ├── WSOP-EUROPE/
+        │   ├── WSOP-LAS VEGAS/
+        │   └── WSOP-PARADISE/
+        └── WSOP Circuit Event/        # 서킷 이벤트
+            ├── WSOP Super Ciruit/
+            └── WSOP-Circuit/
 ```
+
+#### 브랜드별 폴더 요약
+
+| 브랜드 | 하위 폴더 | 특징 |
+|--------|----------|------|
+| **WSOP** | 3개 분류 | Archive(1973~2016), Bracelet(EU/LV/Paradise), Circuit |
+| **HCL** | 2개 | Poker Clip(2023~2025), SHOW/SERIES |
+| **PAD** | 2개 | S12, S13 |
+| **MPP** | 1개 | 2025 Cyprus (3개 이벤트) |
+| **GOG** | 12개 | e01~e12 에피소드 |
+| **GGMillions** | - | (하위 폴더 없음) |
 
 #### NAS에서 추출 가능한 정보
 
@@ -434,24 +463,59 @@ def transform_iconik_metadata_row(row: dict, nas_file_info: Optional[dict]) -> t
 | `/HCL/HCL Poker Clip/` | Iconik Metadata | `ProjectName` = "HCL" | 50+ |
 | `/PAD/` | Iconik Metadata | `ProjectName` = "PAD" | 30+ |
 
-### 5.2 데이터 커버리지 분석
+### 5.2 데이터 커버리지 분석 (2025-12-12 업데이트)
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                 DATA COVERAGE MATRIX                      │
-│                                                          │
-│   Source          │ Files │ Has Metadata │ Coverage     │
-│   ────────────────┼───────┼──────────────┼────────────  │
-│   Circuit 2024    │  38   │     38       │   100%       │
-│   WSOP Vegas      │ 600+  │    100+      │   ~17%       │
-│   WSOP Paradise   │ 100+  │     50+      │   ~50%       │
-│   HCL             │ 129   │     50+      │   ~40%       │
-│   PAD             │  44   │     30+      │   ~70%       │
-│   Legacy (pre-16) │ 500+  │      0       │    0%        │
-│   ────────────────┼───────┼──────────────┼────────────  │
-│   TOTAL           │1,400+ │    250+      │   ~18%       │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                    NAS FILE INVENTORY                                 │
+│                    스캔일: 2025-12-12                                  │
+│                                                                       │
+│   브랜드          │ 파일 수 │ 하위 분류                                │
+│   ───────────────┼─────────┼─────────────────────────────────────────│
+│   WSOP           │  1,286  │ Archive(545) + Bracelet(693) + Circuit(48)│
+│   HCL            │      0  │ 폴더만 존재 (파일 없음)                    │
+│   PAD            │     44  │ S12(21) + S13(23)                        │
+│   MPP            │     11  │ 2025 Cyprus (3개 이벤트)                  │
+│   GOG            │     27  │ E01~E12 (에피소드별 2~3개 버전)           │
+│   GGMillions     │     13  │ Super High Roller FT 시리즈              │
+│   ───────────────┼─────────┼─────────────────────────────────────────│
+│   TOTAL          │  1,381  │                                          │
+│                                                                       │
+│   파일 형식: MP4(990) + MOV(269) + MXF(114) + 기타(8)                  │
+└──────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────┐
+│                    WSOP 상세 분석                                     │
+│                                                                       │
+│   분류                │ 파일 수 │ 연도 범위      │ 파일명 패턴         │
+│   ───────────────────┼─────────┼───────────────┼────────────────────│
+│   ARCHIVE (PRE-2016) │   545   │ 1973~2016     │ wsop-YYYY-me*.mp4  │
+│   Bracelet Event     │   693   │ 2008~현재     │ WSOPE/WSE/WP*.mp4  │
+│   ├─ EUROPE          │         │               │ WSOPE08~현재       │
+│   ├─ LAS VEGAS       │         │               │ WSOP ME/Side       │
+│   └─ PARADISE        │         │               │ WP24-*.mp4         │
+│   Circuit Event      │    48   │ 2023~2025     │ WCLA24-*.mp4 등    │
+│   ├─ LA 2024 STREAM  │    10   │               │ 2024 WSOP-C LA*    │
+│   ├─ LA 2024 SUBCLIP │    29   │               │ WCLA24-01~29.mp4   │
+│   └─ Cyprus/London   │     9   │               │ Super Circuit*     │
+└──────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────┐
+│                 METADATA COVERAGE                                     │
+│                                                                       │
+│   Source          │ Files │ Has Metadata │ Coverage     │ 시트       │
+│   ────────────────┼───────┼──────────────┼─────────────┼────────────│
+│   Circuit 2024    │  29   │     29       │   100%      │ Archive MD │
+│   WSOP Bracelet   │ 693   │    200+      │   ~29%      │ Iconik MD  │
+│   WSOP Archive    │ 545   │      0       │    0%       │ 없음       │
+│   PAD             │  44   │     30+      │   ~70%      │ Iconik MD  │
+│   GOG             │  27   │      0       │    0%       │ 없음       │
+│   GGMillions      │  13   │      0       │    0%       │ 없음       │
+│   MPP             │  11   │      0       │    0%       │ 없음       │
+│   HCL             │   0   │      -       │    -        │ Iconik MD  │
+│   ────────────────┼───────┼──────────────┼─────────────┼────────────│
+│   TOTAL           │1,381  │    259+      │   ~19%      │            │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ---

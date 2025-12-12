@@ -1,0 +1,41 @@
+# Archive Dashboard - Process Compose Configuration
+# Usage:
+#   cd dashboard
+#   process-compose up      # Start all services (with TUI)
+#   process-compose down    # Stop all services
+#   process-compose up -t=false  # Start without TUI
+
+version: "0.5"
+
+log_level: info
+
+processes:
+  backend:
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    working_dir: ./backend
+    environment:
+      - "PYTHONUNBUFFERED=1"
+      - "NAS_USE_REAL_DATA=true"
+      - "NAS_MOUNT_PATH=Z:/ARCHIVE"
+    readiness_probe:
+      http_get:
+        host: 127.0.0.1
+        port: 8000
+        path: /health
+      initial_delay_seconds: 3
+      period_seconds: 5
+    availability:
+      restart: on_failure
+      max_restarts: 3
+
+  frontend:
+    command: npm run dev
+    working_dir: ./frontend
+    environment:
+      - "VITE_API_URL=http://localhost:8000"
+    depends_on:
+      backend:
+        condition: process_healthy
+    availability:
+      restart: on_failure
+      max_restarts: 3

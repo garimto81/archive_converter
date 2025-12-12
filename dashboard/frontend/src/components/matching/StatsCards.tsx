@@ -1,4 +1,4 @@
-import { FileArchive, CheckCircle2, AlertCircle, Clock, AlertTriangle } from 'lucide-react'
+import { FileArchive, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
 import type { MatchingStats } from '@/types/matching'
 
 interface StatsCardsProps {

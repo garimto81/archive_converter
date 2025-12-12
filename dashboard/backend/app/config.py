@@ -1,6 +1,7 @@
 """
 Application configuration using Pydantic Settings.
 """
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,8 +24,17 @@ class Settings(BaseSettings):
         "http://localhost:5173",
     ]
 
-    # NAS (for future use)
-    nas_mount_path: str = "/mnt/nas"
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Parse CORS origins from comma-separated string or list"""
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
+
+    # NAS 설정
+    nas_mount_path: str = "Z:\\ARCHIVE"  # Windows: Z:\ARCHIVE, Linux: /mnt/nas
+    nas_use_real_data: bool = True  # True: 실제 NAS, False: Mock 데이터
 
     # Database (for future use)
     database_url: str = "postgresql://user:pass@db:5432/archive"

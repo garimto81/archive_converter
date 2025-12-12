@@ -887,6 +887,26 @@ FILENAME_PATTERNS: dict[str, str] = {
         r"^(?P<date>\d{6})_Super High Roller Poker FINAL TABLE "
         r"with (?P<player>.+)\.(?P<ext>\w+)$"
     ),
+
+    # === 신규 패턴 (Issue #matching) ===
+
+    # HCL_2024_EP10.mp4 -> Hustler Casino Live 2024 Episode 10
+    "hcl_episode": r"^(?P<code>HCL)_(?P<year>\d{4})_EP(?P<episode>\d+)\.(?P<ext>\w+)$",
+
+    # WSOPE_2024_01.mp4 -> WSOP Europe 2024, #01
+    "wsope_subclip": r"^(?P<code>WSOPE?)_(?P<year>\d{4})_(?P<num>\d+)\.(?P<ext>\w+)$",
+
+    # GGM_FINAL_01.mp4 -> GGMillions Final #01
+    "ggm_final": r"^(?P<code>GGM)_(?P<desc>FINAL)_(?P<num>\d+)\.(?P<ext>\w+)$",
+
+    # MPP_S01_EP01.mp4 -> Malta Poker Party Season 1 Episode 1
+    "mpp_episode": r"^(?P<code>MPP)_S(?P<season>\d+)_EP(?P<episode>\d+)\.(?P<ext>\w+)$",
+
+    # GOG_FINAL.mp4, GOG_EP01.mp4 -> Game of Gold
+    "gog_generic": r"^(?P<code>GOG)_(?P<desc>\w+)\.(?P<ext>\w+)$",
+
+    # STREAM_01.mp4 -> Stream clip #01
+    "stream_generic": r"^(?P<code>STREAM)_(?P<num>\d+)\.(?P<ext>\w+)$",
 }
 
 

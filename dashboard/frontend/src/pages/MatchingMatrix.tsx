@@ -1,25 +1,65 @@
-import { useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Search, Filter, RefreshCw } from 'lucide-react'
+import { useEffect, useState, useRef } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Search, RefreshCw, HardDrive, Plus } from 'lucide-react'
 import { useMatchingStore } from '@/stores/matchingStore'
 import { fetchMatchingMatrix, fetchMatchingStats } from '@/api/matching'
-import StatsCards from '@/components/matching/StatsCards'
-import FileRow from '@/components/matching/FileRow'
+import { fetchFolderTree, refreshNasScan, type ScanResult } from '@/api/nas'
+import SummaryBar from '@/components/matching/SummaryBar'
+import UnifiedTree from '@/components/matching/UnifiedTree'
+import type { FilterOptions } from '@/types/matching'
 
 export default function MatchingMatrix() {
+  const queryClient = useQueryClient()
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null)
+  const [showScanMenu, setShowScanMenu] = useState(false)
+  const scanMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (scanMenuRef.current && !scanMenuRef.current.contains(event.target as Node)) {
+        setShowScanMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   const {
-    items,
     stats,
+    items,
     expandedFiles,
     filters,
     setItems,
     setStats,
     toggleFileExpansion,
     setFilters,
-    getFilteredItems,
   } = useMatchingStore()
 
-  // 매칭 매트릭스 데이터 로드
+  // NAS Scan mutation
+  const scanMutation = useMutation({
+    mutationFn: (mode: 'full' | 'incremental') => refreshNasScan(mode),
+    onSuccess: (result) => {
+      setScanResult(result)
+      // 스캔 후 데이터 갱신
+      queryClient.invalidateQueries({ queryKey: ['folder-tree'] })
+      queryClient.invalidateQueries({ queryKey: ['matching-matrix'] })
+      queryClient.invalidateQueries({ queryKey: ['matching-stats'] })
+      // 3초 후 결과 메시지 숨기기
+      setTimeout(() => setScanResult(null), 5000)
+    },
+  })
+
+  // Load folder tree
+  const {
+    data: folderTree,
+    isLoading: folderLoading,
+  } = useQuery({
+    queryKey: ['folder-tree'],
+    queryFn: fetchFolderTree,
+  })
+
+  // Load matching matrix data
   const {
     data: matrixData,
     isLoading: matrixLoading,
@@ -27,10 +67,10 @@ export default function MatchingMatrix() {
   } = useQuery({
     queryKey: ['matching-matrix'],
     queryFn: fetchMatchingMatrix,
-    refetchInterval: 10000, // 10초마다 자동 갱신
+    refetchInterval: 60000, // 60초마다 자동 갱신
   })
 
-  // 통계 데이터 로드
+  // Load stats data
   const {
     data: statsData,
     isLoading: statsLoading,
@@ -38,10 +78,10 @@ export default function MatchingMatrix() {
   } = useQuery({
     queryKey: ['matching-stats'],
     queryFn: fetchMatchingStats,
-    refetchInterval: 10000,
+    refetchInterval: 60000,
   })
 
-  // 데이터 동기화
+  // Sync data to store
   useEffect(() => {
     if (matrixData) {
       setItems(matrixData)
@@ -54,139 +94,143 @@ export default function MatchingMatrix() {
     }
   }, [statsData, setStats])
 
-  const filteredItems = getFilteredItems()
-
   const handleRefresh = () => {
     refetchMatrix()
     refetchStats()
   }
 
   return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">매칭 매트릭스</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            분할 아카이브 파일과 세그먼트 매칭 현황
+          <h1 className="text-lg font-bold text-gray-900">Matching Matrix</h1>
+          <p className="text-xs text-gray-500">
+            NAS files and segment matching status
           </p>
         </div>
-        <button
-          onClick={handleRefresh}
-          className="btn-secondary flex items-center space-x-2"
-          disabled={matrixLoading || statsLoading}
-        >
-          <RefreshCw
-            className={`w-4 h-4 ${
-              matrixLoading || statsLoading ? 'animate-spin' : ''
-            }`}
-          />
-          <span>새로고침</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Refresh Cache Button */}
+          <button
+            onClick={handleRefresh}
+            className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            disabled={matrixLoading || statsLoading}
+            title="Refresh cached data"
+          >
+            <RefreshCw
+              className={`w-4 h-4 mr-1.5 ${matrixLoading || statsLoading ? 'animate-spin' : ''}`}
+            />
+            Refresh
+          </button>
+
+          {/* Scan Dropdown */}
+          <div className="relative" ref={scanMenuRef}>
+            <button
+              onClick={() => setShowScanMenu(!showScanMenu)}
+              className="inline-flex items-center px-3 py-1.5 border border-blue-500 rounded-md text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100"
+              disabled={scanMutation.isPending}
+            >
+              <HardDrive
+                className={`w-4 h-4 mr-1.5 ${scanMutation.isPending ? 'animate-pulse' : ''}`}
+              />
+              {scanMutation.isPending ? 'Scanning...' : 'Scan NAS'}
+            </button>
+
+            {/* Dropdown Menu */}
+            {showScanMenu && !scanMutation.isPending && (
+              <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                <button
+                  onClick={() => {
+                    scanMutation.mutate('incremental')
+                    setShowScanMenu(false)
+                  }}
+                  className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <Plus className="w-4 h-4 mr-2 text-green-500" />
+                  <div className="text-left">
+                    <div className="font-medium">Incremental Scan</div>
+                    <div className="text-xs text-gray-500">New files only (fast)</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    scanMutation.mutate('full')
+                    setShowScanMenu(false)
+                  }}
+                  className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t border-gray-100"
+                >
+                  <HardDrive className="w-4 h-4 mr-2 text-blue-500" />
+                  <div className="text-left">
+                    <div className="font-medium">Full Rescan</div>
+                    <div className="text-xs text-gray-500">Scan all files</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* 통계 카드 */}
-      <StatsCards stats={stats} loading={statsLoading} />
+      {/* Scan Result Toast */}
+      {scanResult && (
+        <div className="px-4 py-2 bg-green-50 border-b border-green-200 text-sm">
+          <span className="text-green-700">
+            {scanResult.mode === 'incremental' ? 'Incremental' : 'Full'} scan completed:
+            {' '}{scanResult.total_files.toLocaleString()} files
+            {scanResult.new_files > 0 && ` (+${scanResult.new_files} new)`}
+            {scanResult.modified_files > 0 && ` (${scanResult.modified_files} modified)`}
+            {' '}in {scanResult.scan_duration_sec.toFixed(1)}s
+          </span>
+        </div>
+      )}
 
-      {/* 필터 및 검색 */}
-      <div className="card p-4">
-        <div className="flex items-center space-x-4">
-          {/* 검색 */}
-          <div className="flex-1 relative">
+      {/* Summary Bar */}
+      <div className="px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <SummaryBar stats={stats} loading={statsLoading} />
+      </div>
+
+      {/* Filters */}
+      <div className="px-4 py-3 bg-white border-b border-gray-200">
+        <div className="flex items-center space-x-3">
+          {/* Search */}
+          <div className="flex-1 max-w-md relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="파일명으로 검색..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              placeholder="Search files..."
+              className="w-full pl-9 pr-4 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={filters.searchQuery || ''}
               onChange={(e) => setFilters({ searchQuery: e.target.value })}
             />
           </div>
 
-          {/* 상태 필터 */}
-          <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <select
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              value={filters.status || 'all'}
-              onChange={(e) =>
-                setFilters({
-                  status: e.target.value as any,
-                })
-              }
-            >
-              <option value="all">전체</option>
-              <option value="complete">완료</option>
-              <option value="partial">부분</option>
-              <option value="warning">경고</option>
-              <option value="pending">대기</option>
-            </select>
-          </div>
-
-          {/* 정렬 */}
+          {/* Status Filter */}
           <select
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            value={filters.sortBy || 'file_name'}
-            onChange={(e) =>
-              setFilters({
-                sortBy: e.target.value as any,
-              })
-            }
+            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={filters.status || 'all'}
+            onChange={(e) => setFilters({ status: e.target.value as FilterOptions['status'] })}
           >
-            <option value="file_name">파일명</option>
-            <option value="segment_count">세그먼트 수</option>
-            <option value="status">상태</option>
-          </select>
-
-          <select
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            value={filters.sortOrder || 'desc'}
-            onChange={(e) =>
-              setFilters({
-                sortOrder: e.target.value as any,
-              })
-            }
-          >
-            <option value="desc">내림차순</option>
-            <option value="asc">오름차순</option>
+            <option value="all">All Status</option>
+            <option value="complete">Complete</option>
+            <option value="partial">Partial</option>
+            <option value="warning">Warning</option>
+            <option value="pending">Pending</option>
+            <option value="no_metadata">No Metadata</option>
           </select>
         </div>
       </div>
 
-      {/* 파일 목록 */}
-      <div className="space-y-3">
-        {matrixLoading ? (
-          // 로딩 스켈레톤
-          [...Array(5)].map((_, i) => (
-            <div key={i} className="card p-6 animate-pulse">
-              <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </div>
-          ))
-        ) : filteredItems.length === 0 ? (
-          // 데이터 없음
-          <div className="card p-12 text-center">
-            <p className="text-gray-500">표시할 파일이 없습니다.</p>
-          </div>
-        ) : (
-          // 파일 목록
-          filteredItems.map((item) => (
-            <FileRow
-              key={item.file_name}
-              item={item}
-              isExpanded={expandedFiles.has(item.file_name)}
-              onToggle={() => toggleFileExpansion(item.file_name)}
-            />
-          ))
-        )}
+      {/* Unified Tree - Folders + Files */}
+      <div className="flex-1 overflow-hidden">
+        <UnifiedTree
+          folderRoot={folderTree || null}
+          items={items}
+          expandedFiles={expandedFiles}
+          onToggleFile={toggleFileExpansion}
+          loading={folderLoading || matrixLoading}
+          filters={filters}
+        />
       </div>
-
-      {/* 결과 요약 */}
-      {!matrixLoading && filteredItems.length > 0 && (
-        <div className="text-sm text-gray-500 text-center">
-          총 {filteredItems.length}개의 파일
-        </div>
-      )}
     </div>
   )
 }

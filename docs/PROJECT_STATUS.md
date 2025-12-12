@@ -163,11 +163,20 @@ class PlayerInHand(BaseModel):
 | **태그 방식** | 다중 컬럼 | 쉼표 구분 문자열 |
 | **상황 플래그** | 없음 | Boolean 컬럼 |
 
-#### NAS 저장소 (분석 완료)
+#### NAS 저장소 (2025-12-12 스캔 완료)
 
-- **경로**: `\\10.10.100.122\docker\GGPNAs\ARCHIVE\`
-- **폴더 수**: 194개
-- **브랜드**: WSOP, WSOPC, WSOPE, WSOPP, HCL, PAD, GGMillions, MPP, GOG
+- **마운트**: `Z:\` / `\\10.10.100.122\docker\GGPNAs\`
+- **총 파일 수**: 1,381개
+- **파일 형식**: MP4(990) + MOV(269) + MXF(114) + 기타(8)
+
+| 브랜드 | 파일 수 | 설명 |
+|--------|---------|------|
+| WSOP | 1,286 | Archive(545) + Bracelet(693) + Circuit(48) |
+| PAD | 44 | S12(21) + S13(23) |
+| GOG | 27 | E01~E12 에피소드 |
+| GGMillions | 13 | Super High Roller FT |
+| MPP | 11 | 2025 Cyprus |
+| HCL | 0 | 폴더만 존재 (파일 없음) |
 
 ---
 
