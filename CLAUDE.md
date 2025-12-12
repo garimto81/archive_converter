@@ -24,6 +24,7 @@ cd D:\AI\claude01\Archive_Converter\dashboard\frontend
 npm install
 npm run dev          # 개발 서버
 npm run build        # 프로덕션 빌드
+npm run preview      # 빌드 미리보기
 ```
 
 ### Docker (전체 스택)
@@ -93,8 +94,12 @@ Frontend (React + Vite + TailwindCSS)  →  Backend (FastAPI)
 |------|-------------|
 | `src/models/udm.py` | UDM Pydantic 스키마 (8 Enums, 10 Models) |
 | `src/api/main.py` | Core API 진입점 (19개 엔드포인트) |
+| `src/extractors/nas_scanner.py` | NAS 파일 시스템 스캔 |
+| `src/extractors/udm_transformer.py` | UDM 변환 로직 |
 | `dashboard/backend/app/main.py` | Dashboard API 진입점 |
+| `dashboard/backend/app/routers/` | matching, nas, udm_viewer 라우터 |
 | `dashboard/frontend/src/App.tsx` | Dashboard React 앱 |
+| `dashboard/frontend/src/components/matching/` | UnifiedTree, FolderTree 등 |
 | `tests/conftest.py` | pytest 공통 픽스처 (30개) |
 | `profiles/*.yaml` | 소스별 변환 프로파일 |
 
@@ -114,6 +119,8 @@ Frontend (React + Vite + TailwindCSS)  →  Backend (FastAPI)
 - `GET /api/matching/stats` - 통계
 - `GET /api/nas/folders` - NAS 폴더 트리
 - `GET /api/nas/files` - NAS 파일 목록
+- `GET /api/udm-viewer/files` - UDM 파일 목록
+- `GET /api/udm-viewer/files/{id}` - UDM 파일 상세
 
 ## Tech Stack
 

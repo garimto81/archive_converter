@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import matching_router, nas_router, udm_viewer_router
+from .routers import matching_router, nas_router, udm_viewer_router, pattern_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -27,6 +27,7 @@ app.add_middleware(
 app.include_router(matching_router, prefix=settings.api_prefix)
 app.include_router(nas_router, prefix=settings.api_prefix)
 app.include_router(udm_viewer_router, prefix=settings.api_prefix)
+app.include_router(pattern_router, prefix=settings.api_prefix)
 
 
 @app.get("/")

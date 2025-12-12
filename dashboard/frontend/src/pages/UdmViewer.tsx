@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   ChevronDown,
@@ -316,6 +316,11 @@ interface MatrixTableProps {
 }
 
 function MatrixTable({ assets, expandedGroups, onToggleGroup, onRowClick, selectedAssetId }: MatrixTableProps) {
+  // Refs for dual scrollbar synchronization
+  const topScrollRef = useRef<HTMLDivElement>(null)
+  const tableScrollRef = useRef<HTMLDivElement>(null)
+  const [tableWidth, setTableWidth] = useState(2000)
+
   // Calculate completion for an asset
   const calculateCompletion = useCallback((asset: Asset): number => {
     let total = 0
@@ -332,10 +337,48 @@ function MatrixTable({ assets, expandedGroups, onToggleGroup, onRowClick, select
     return total > 0 ? Math.round((filled / total) * 100) : 0
   }, [])
 
+  // Sync top scrollbar with table scroll
+  const handleTopScroll = useCallback(() => {
+    if (tableScrollRef.current && topScrollRef.current) {
+      tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft
+    }
+  }, [])
+
+  // Sync table scroll with top scrollbar
+  const handleTableScroll = useCallback(() => {
+    if (topScrollRef.current && tableScrollRef.current) {
+      topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft
+    }
+  }, [])
+
+  // Update table width when content changes
+  useEffect(() => {
+    if (tableScrollRef.current) {
+      const table = tableScrollRef.current.querySelector('table')
+      if (table) {
+        setTableWidth(table.scrollWidth)
+      }
+    }
+  }, [assets, expandedGroups])
 
   return (
-    <div className="overflow-auto flex-1">
-      <table className="w-full border-collapse text-sm">
+    <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Top Scrollbar */}
+      <div
+        ref={topScrollRef}
+        className="overflow-x-auto overflow-y-hidden h-3 border-b border-gray-200 bg-gray-50 flex-shrink-0"
+        onScroll={handleTopScroll}
+      >
+        <div style={{ width: tableWidth, height: 1 }} />
+      </div>
+
+      {/* Table Container */}
+      <div
+        ref={tableScrollRef}
+        className="overflow-auto flex-1"
+        onScroll={handleTableScroll}
+      >
+        <table className="w-full border-collapse text-sm">
         {/* Header Row 1: Group Headers */}
         <thead className="sticky top-0 z-10">
           <tr className="bg-gray-50 border-b border-gray-200">
@@ -471,6 +514,7 @@ function MatrixTable({ assets, expandedGroups, onToggleGroup, onRowClick, select
           })}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
