@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Database, Activity, FileJson, Info } from 'lucide-react'
+import { Database, Activity, FileJson, Info, Regex } from 'lucide-react'
 import { VERSION, CHANGELOG, BUILD_TIME } from '@/version'
 
 export default function Header() {
@@ -22,6 +22,7 @@ export default function Header() {
   const navItems = [
     { path: '/matching', label: '매칭 매트릭스', icon: Activity },
     { path: '/udm', label: 'UDM Viewer', icon: FileJson },
+    { path: '/pattern', label: '패턴 분석', icon: Regex },
   ]
 
   return (

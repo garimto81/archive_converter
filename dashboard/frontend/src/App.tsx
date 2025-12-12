@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/layout/Layout'
 import MatchingMatrix from './pages/MatchingMatrix'
 import UdmViewer from './pages/UdmViewer'
+import PatternAnalysis from './pages/PatternAnalysis'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
           <Route index element={<Navigate to="/matching" replace />} />
           <Route path="matching" element={<MatchingMatrix />} />
           <Route path="udm" element={<UdmViewer />} />
+          <Route path="pattern" element={<PatternAnalysis />} />
         </Route>
       </Routes>
     </BrowserRouter>
