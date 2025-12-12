@@ -1,603 +1,749 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Search,
-  Filter,
-  RefreshCw,
-  FileJson,
   ChevronDown,
   ChevronRight,
-  Database,
-  Copy,
   Check,
-  Eye,
-  X,
+  Minus,
+  AlertCircle,
+  RefreshCw,
+  Search,
+  Filter,
+  Download,
+  Layers,
 } from 'lucide-react'
-import { fetchUdmDocument, fetchUdmStats, fetchAssetDetail } from '@/api/udm'
-import type { UdmAssetSummary, UdmFilters } from '@/types/udm'
+import { fetchUdmAssets, fetchUdmStats, loadFromNas } from '@/api/udm'
+import {
+  COLUMN_GROUPS,
+  getNestedValue,
+  getFieldLabel,
+  getFieldSource,
+  hasValue,
+  SOURCE_COLORS,
+  type ColumnGroup,
+} from '@/types/udm-schema'
+import type { Asset, UdmFilters } from '@/types/udm'
 
-// 브랜드별 색상
-const brandColors: Record<string, string> = {
-  WSOP: 'bg-red-100 text-red-800',
-  HCL: 'bg-purple-100 text-purple-800',
-  PAD: 'bg-blue-100 text-blue-800',
-  GGMillions: 'bg-green-100 text-green-800',
-  MPP: 'bg-yellow-100 text-yellow-800',
-  GOG: 'bg-orange-100 text-orange-800',
+// =============================================================================
+// Types
+// =============================================================================
+
+interface ExpandedGroups {
+  [groupId: string]: boolean
 }
 
-// Asset Type별 색상
-const assetTypeColors: Record<string, string> = {
-  STREAM: 'bg-indigo-100 text-indigo-800',
-  SUBCLIP: 'bg-cyan-100 text-cyan-800',
-  EPISODE: 'bg-pink-100 text-pink-800',
-  HAND_CLIP: 'bg-teal-100 text-teal-800',
+// =============================================================================
+// FilterBar Component
+// =============================================================================
+
+interface FilterBarProps {
+  filters: UdmFilters
+  onFilterChange: (filters: UdmFilters) => void
+  onRefresh: () => void
+  brands: string[]
+  assetTypes: string[]
+  years: number[]
 }
 
-function JsonViewer({ data, title }: { data: unknown; title?: string }) {
-  const [copied, setCopied] = useState(false)
-
-  const jsonString = useMemo(
-    () => JSON.stringify(data, null, 2),
-    [data]
-  )
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(jsonString)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
+function FilterBar({ filters, onFilterChange, onRefresh, brands, assetTypes, years }: FilterBarProps) {
   return (
-    <div className="bg-gray-900 rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-800">
-        <span className="text-sm text-gray-300 font-mono">
-          {title || 'JSON'}
-        </span>
-        <button
-          onClick={handleCopy}
-          className="flex items-center space-x-1 text-gray-400 hover:text-white transition-colors"
-        >
-          {copied ? (
-            <>
-              <Check className="w-4 h-4 text-green-400" />
-              <span className="text-xs text-green-400">복사됨</span>
-            </>
-          ) : (
-            <>
-              <Copy className="w-4 h-4" />
-              <span className="text-xs">복사</span>
-            </>
-          )}
-        </button>
-      </div>
-      <pre className="p-4 text-sm text-green-400 font-mono overflow-x-auto max-h-96">
-        {jsonString}
-      </pre>
-    </div>
-  )
-}
+    <div className="flex items-center gap-3 px-4 py-2 bg-white border-b border-gray-200">
+      <Filter className="w-4 h-4 text-gray-400" />
 
-function AssetDetailModal({
-  assetUuid,
-  onClose,
-}: {
-  assetUuid: string
-  onClose: () => void
-}) {
-  const { data, isLoading } = useQuery({
-    queryKey: ['asset-detail', assetUuid],
-    queryFn: () => fetchAssetDetail(assetUuid),
-    enabled: !!assetUuid,
-  })
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50">
-          <div className="flex items-center space-x-3">
-            <FileJson className="w-6 h-6 text-primary-600" />
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Asset 상세 정보
-              </h3>
-              {data && (
-                <p className="text-sm text-gray-500">{data.file_name}</p>
-              )}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* 콘텐츠 */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
-            </div>
-          ) : data ? (
-            <div className="space-y-6">
-              {/* 기본 정보 */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-500 uppercase">
-                    UUID
-                  </label>
-                  <p className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
-                    {data.asset_uuid}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-500 uppercase">
-                    파일명
-                  </label>
-                  <p className="font-medium">{data.file_name}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-500 uppercase">
-                    Asset Type
-                  </label>
-                  <span
-                    className={`inline-block px-2 py-1 rounded text-sm ${
-                      assetTypeColors[data.asset_type] || 'bg-gray-100'
-                    }`}
-                  >
-                    {data.asset_type}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-500 uppercase">
-                    Source Origin
-                  </label>
-                  <p className="text-sm">{data.source_origin}</p>
-                </div>
-              </div>
-
-              {/* NAS 경로 */}
-              {data.file_path_nas && (
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-500 uppercase">
-                    NAS 경로
-                  </label>
-                  <p className="font-mono text-sm bg-gray-100 px-3 py-2 rounded break-all">
-                    {data.file_path_nas}
-                  </p>
-                </div>
-              )}
-
-              {/* Event Context */}
-              <div className="space-y-2">
-                <label className="text-xs text-gray-500 uppercase">
-                  Event Context
-                </label>
-                <JsonViewer
-                  data={data.event_context}
-                  title="event_context.json"
-                />
-              </div>
-
-              {/* Tech Spec */}
-              {data.tech_spec && (
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-500 uppercase">
-                    Tech Spec
-                  </label>
-                  <JsonViewer data={data.tech_spec} title="tech_spec.json" />
-                </div>
-              )}
-
-              {/* 전체 JSON */}
-              <div className="space-y-2">
-                <label className="text-xs text-gray-500 uppercase">
-                  전체 JSON
-                </label>
-                <JsonViewer data={data} title="asset.json" />
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              데이터를 불러올 수 없습니다.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function AssetRow({
-  asset,
-  onViewDetail,
-}: {
-  asset: UdmAssetSummary
-  onViewDetail: (uuid: string) => void
-}) {
-  const [expanded, setExpanded] = useState(false)
-
-  return (
-    <div className="card hover:shadow-md transition-shadow">
-      {/* 메인 행 */}
-      <div
-        className="p-4 cursor-pointer flex items-center"
-        onClick={() => setExpanded(!expanded)}
+      {/* Brand Filter */}
+      <select
+        className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        value={filters.brand || ''}
+        onChange={(e) => onFilterChange({ ...filters, brand: e.target.value || undefined })}
       >
-        <button className="mr-3 text-gray-400">
-          {expanded ? (
-            <ChevronDown className="w-5 h-5" />
-          ) : (
-            <ChevronRight className="w-5 h-5" />
-          )}
-        </button>
+        <option value="">All Brands</option>
+        {brands.map((b) => (
+          <option key={b} value={b}>
+            {b}
+          </option>
+        ))}
+      </select>
 
-        {/* 파일 아이콘 */}
-        <FileJson className="w-5 h-5 text-gray-400 mr-3" />
+      {/* Year Filter */}
+      <select
+        className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        value={filters.year || ''}
+        onChange={(e) => onFilterChange({ ...filters, year: e.target.value ? Number(e.target.value) : undefined })}
+      >
+        <option value="">All Years</option>
+        {years.map((y) => (
+          <option key={y} value={y}>
+            {y}
+          </option>
+        ))}
+      </select>
 
-        {/* 파일명 */}
-        <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-gray-900 truncate">
-            {asset.file_name}
-          </h4>
-          <p className="text-sm text-gray-500 font-mono truncate">
-            {asset.asset_uuid.slice(0, 8)}...
-          </p>
-        </div>
+      {/* Asset Type Filter */}
+      <select
+        className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        value={filters.asset_type || ''}
+        onChange={(e) => onFilterChange({ ...filters, asset_type: e.target.value || undefined })}
+      >
+        <option value="">All Types</option>
+        {assetTypes.map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
 
-        {/* 브랜드 */}
-        <span
-          className={`px-2 py-1 rounded text-xs font-medium mr-3 ${
-            brandColors[asset.brand] || 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {asset.brand}
-        </span>
+      {/* Segments Filter */}
+      <label className="flex items-center gap-1 text-sm text-gray-600 cursor-pointer">
+        <input
+          type="checkbox"
+          className="rounded border-gray-300"
+          checked={filters.hasSegments || false}
+          onChange={(e) => onFilterChange({ ...filters, hasSegments: e.target.checked || undefined })}
+        />
+        Segments
+      </label>
 
-        {/* Asset Type */}
-        <span
-          className={`px-2 py-1 rounded text-xs font-medium mr-3 ${
-            assetTypeColors[asset.asset_type] || 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {asset.asset_type}
-        </span>
-
-        {/* 연도 */}
-        <span className="text-sm text-gray-600 mr-3 w-12">{asset.year}</span>
-
-        {/* 시즌/에피소드 */}
-        <span className="text-sm text-gray-500 mr-3 w-20">
-          {asset.season && `S${asset.season}`}
-          {asset.episode && `E${asset.episode}`}
-        </span>
-
-        {/* 상세 보기 버튼 */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onViewDetail(asset.asset_uuid)
-          }}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          title="상세 보기"
-        >
-          <Eye className="w-4 h-4 text-gray-500" />
-        </button>
+      {/* Search */}
+      <div className="relative flex-1 max-w-xs ml-auto">
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          placeholder="검색..."
+          className="w-full pl-8 pr-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={filters.search || ''}
+          onChange={(e) => onFilterChange({ ...filters, search: e.target.value || undefined })}
+        />
       </div>
 
-      {/* 확장된 내용 */}
-      {expanded && (
-        <div className="px-4 pb-4 border-t bg-gray-50">
-          <div className="pt-4">
-            <JsonViewer
-              data={{
-                asset_uuid: asset.asset_uuid,
-                file_name: asset.file_name,
-                file_path_nas: asset.file_path_nas,
-                asset_type: asset.asset_type,
-                brand: asset.brand,
-                year: asset.year,
-                season: asset.season,
-                episode: asset.episode,
-                source_origin: asset.source_origin,
-                segment_count: asset.segment_count,
-              }}
-              title="asset_summary.json"
-            />
-          </div>
-        </div>
-      )}
+      {/* Refresh */}
+      <button
+        onClick={onRefresh}
+        className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+        title="새로고침"
+      >
+        <RefreshCw className="w-4 h-4" />
+      </button>
     </div>
   )
 }
 
-function StatsOverview({
-  stats,
-  loading,
-}: {
-  stats: {
-    total_assets: number
-    total_segments: number
-    brand_distribution: Record<string, number>
-    asset_type_distribution: Record<string, number>
-  } | null
-  loading: boolean
-}) {
-  if (loading) {
+// =============================================================================
+// StatsBar Component
+// =============================================================================
+
+interface StatsBarProps {
+  totalFiles: number
+  avgCompletion: number
+  totalBrands: number
+  segmentFiles: number
+}
+
+function StatsBar({ totalFiles, avgCompletion, totalBrands, segmentFiles }: StatsBarProps) {
+  return (
+    <div className="flex items-center gap-6 px-4 py-2 bg-gray-50 border-b border-gray-200 text-sm">
+      <div className="flex items-center gap-2">
+        <span className="text-gray-500">총 파일:</span>
+        <span className="font-semibold text-gray-900">{totalFiles}개</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-500">평균 완성도:</span>
+        <span
+          className={`font-semibold ${
+            avgCompletion >= 67 ? 'text-green-600' : avgCompletion >= 34 ? 'text-yellow-600' : 'text-red-600'
+          }`}
+        >
+          {avgCompletion}%
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-500">브랜드:</span>
+        <span className="font-semibold text-gray-900">{totalBrands}개</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-500">Segments 있음:</span>
+        <span className="font-semibold text-gray-900">{segmentFiles}개</span>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// CompletionBar Component
+// =============================================================================
+
+interface CompletionBarProps {
+  percentage: number
+  compact?: boolean
+}
+
+function CompletionBar({ percentage, compact = false }: CompletionBarProps) {
+  const color = percentage >= 67 ? 'bg-green-500' : percentage >= 34 ? 'bg-yellow-500' : 'bg-red-500'
+  const textColor = percentage >= 67 ? 'text-green-600' : percentage >= 34 ? 'text-yellow-600' : 'text-red-600'
+
+  if (compact) {
     return (
-      <div className="grid grid-cols-4 gap-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="card p-4 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          </div>
-        ))}
+      <div className="flex items-center gap-1">
+        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className={`h-full ${color}`} style={{ width: `${percentage}%` }} />
+        </div>
+        <span className={`text-xs font-medium ${textColor} w-8 text-right`}>{percentage}%</span>
       </div>
     )
   }
 
-  if (!stats) return null
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className={`h-full ${color}`} style={{ width: `${percentage}%` }} />
+      </div>
+      <span className={`text-sm font-medium ${textColor}`}>{percentage}%</span>
+    </div>
+  )
+}
+
+// =============================================================================
+// FieldCell Component
+// =============================================================================
+
+interface FieldCellProps {
+  value: unknown
+  fieldPath: string
+  required?: boolean
+}
+
+function FieldCell({ value, fieldPath, required = false }: FieldCellProps) {
+  const isParsed = hasValue(value)
+  const source = getFieldSource(fieldPath)
+
+  // Format value for display
+  const formatValue = (val: unknown): string => {
+    if (val === null || val === undefined) return '-'
+    if (typeof val === 'boolean') return val ? 'Y' : 'N'
+    if (typeof val === 'number') return val.toLocaleString()
+    if (Array.isArray(val)) return val.length > 0 ? `[${val.length}]` : '-'
+    if (typeof val === 'object') return '{...}'
+    const str = String(val)
+    return str.length > 15 ? str.slice(0, 15) + '...' : str
+  }
+
+  // Cell styling based on state
+  const bgClass = isParsed
+    ? 'bg-green-50'
+    : required
+      ? 'bg-red-50'
+      : 'bg-gray-50'
+
+  const borderClass = isParsed
+    ? 'border-green-100'
+    : required
+      ? 'border-red-200'
+      : 'border-gray-100'
 
   return (
-    <div className="grid grid-cols-4 gap-4">
-      {/* 총 Assets */}
-      <div className="card p-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-primary-100 rounded-lg">
-            <Database className="w-5 h-5 text-primary-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">총 Assets</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {stats.total_assets.toLocaleString()}
-            </p>
-          </div>
-        </div>
+    <td
+      className={`px-2 py-1 border-r ${borderClass} ${bgClass} text-center min-w-[80px] max-w-[120px]`}
+      title={isParsed ? String(value) : undefined}
+    >
+      <div className="flex flex-col items-center gap-0.5">
+        {/* Status Icon */}
+        {isParsed ? (
+          <Check className="w-3.5 h-3.5 text-green-500" />
+        ) : required ? (
+          <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+        ) : (
+          <Minus className="w-3.5 h-3.5 text-gray-300" />
+        )}
+        {/* Value Preview */}
+        <span
+          className={`text-xs font-mono truncate max-w-full ${
+            isParsed ? 'text-gray-700' : 'text-gray-300'
+          }`}
+        >
+          {formatValue(value)}
+        </span>
+        {/* Source indicator (tiny dot) */}
+        <span className={`w-1.5 h-1.5 rounded-full ${SOURCE_COLORS[source]?.split(' ')[0] || 'bg-gray-300'}`} />
       </div>
+    </td>
+  )
+}
 
-      {/* 총 Segments */}
-      <div className="card p-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-green-100 rounded-lg">
-            <FileJson className="w-5 h-5 text-green-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">총 Segments</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {stats.total_segments.toLocaleString()}
-            </p>
-          </div>
-        </div>
+// =============================================================================
+// ColumnGroupHeader Component
+// =============================================================================
+
+interface ColumnGroupHeaderProps {
+  group: ColumnGroup
+  isExpanded: boolean
+  onToggle: () => void
+  colSpan: number
+}
+
+function ColumnGroupHeader({ group, isExpanded, onToggle, colSpan }: ColumnGroupHeaderProps) {
+  return (
+    <th
+      className="px-2 py-2 bg-gray-100 border-r border-gray-300 cursor-pointer hover:bg-gray-200"
+      colSpan={colSpan}
+      onClick={onToggle}
+    >
+      <div className="flex items-center justify-center gap-1">
+        {isExpanded ? (
+          <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+        ) : (
+          <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+        )}
+        <span className="text-sm font-medium text-gray-700">
+          {group.icon} {group.label}
+        </span>
+        {!isExpanded && (
+          <span className="text-xs text-gray-400 ml-1">({group.fields.length})</span>
+        )}
       </div>
+    </th>
+  )
+}
 
-      {/* 브랜드 수 */}
-      <div className="card p-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-purple-100 rounded-lg">
-            <Filter className="w-5 h-5 text-purple-600" />
-          </div>
+// =============================================================================
+// MatrixTable Component
+// =============================================================================
+
+interface MatrixTableProps {
+  assets: Asset[]
+  expandedGroups: ExpandedGroups
+  onToggleGroup: (groupId: string) => void
+  onRowClick?: (asset: Asset) => void
+  selectedAssetId?: string | null
+}
+
+function MatrixTable({ assets, expandedGroups, onToggleGroup, onRowClick, selectedAssetId }: MatrixTableProps) {
+  // Calculate completion for an asset
+  const calculateCompletion = useCallback((asset: Asset): number => {
+    let total = 0
+    let filled = 0
+
+    for (const group of COLUMN_GROUPS) {
+      for (const fieldPath of group.fields) {
+        total++
+        const value = getNestedValue(asset as unknown as Record<string, unknown>, fieldPath)
+        if (hasValue(value)) filled++
+      }
+    }
+
+    return total > 0 ? Math.round((filled / total) * 100) : 0
+  }, [])
+
+
+  return (
+    <div className="overflow-auto flex-1">
+      <table className="w-full border-collapse text-sm">
+        {/* Header Row 1: Group Headers */}
+        <thead className="sticky top-0 z-10">
+          <tr className="bg-gray-50 border-b border-gray-200">
+            {/* File Name Header */}
+            <th className="px-3 py-2 text-left bg-gray-100 border-r border-gray-300 sticky left-0 z-20 min-w-[200px]">
+              <span className="font-semibold text-gray-700">파일명</span>
+            </th>
+
+            {/* Column Group Headers */}
+            {COLUMN_GROUPS.map((group) => (
+              <ColumnGroupHeader
+                key={group.id}
+                group={group}
+                isExpanded={expandedGroups[group.id]}
+                onToggle={() => onToggleGroup(group.id)}
+                colSpan={expandedGroups[group.id] ? group.fields.length : 1}
+              />
+            ))}
+
+            {/* Completion Header */}
+            <th className="px-3 py-2 bg-gray-100 border-r border-gray-300 min-w-[100px]">
+              <span className="font-semibold text-gray-700">완성도</span>
+            </th>
+          </tr>
+
+          {/* Header Row 2: Field Names (only for expanded groups) */}
+          <tr className="bg-gray-50 border-b border-gray-200">
+            <th className="px-3 py-1 bg-gray-50 border-r border-gray-200 sticky left-0 z-20" />
+
+            {COLUMN_GROUPS.map((group) => {
+              if (expandedGroups[group.id]) {
+                return group.fields.map((fieldPath) => (
+                  <th
+                    key={fieldPath}
+                    className="px-1 py-1 text-xs text-gray-500 font-normal border-r border-gray-200 min-w-[80px] max-w-[120px]"
+                    title={getFieldLabel(fieldPath)}
+                  >
+                    <span className="truncate block">{getFieldLabel(fieldPath)}</span>
+                  </th>
+                ))
+              } else {
+                return (
+                  <th
+                    key={group.id}
+                    className="px-1 py-1 text-xs text-gray-400 font-normal border-r border-gray-200"
+                  >
+                    ...
+                  </th>
+                )
+              }
+            })}
+
+            <th className="px-1 py-1 border-r border-gray-200" />
+          </tr>
+        </thead>
+
+        {/* Data Rows */}
+        <tbody>
+          {assets.map((asset) => {
+            const completion = calculateCompletion(asset)
+            const isSelected = selectedAssetId === asset.asset_uuid
+
+            return (
+              <tr
+                key={asset.asset_uuid}
+                className={`border-b border-gray-100 hover:bg-blue-50 cursor-pointer ${
+                  isSelected ? 'bg-blue-100' : ''
+                }`}
+                onClick={() => onRowClick?.(asset)}
+              >
+                {/* File Name */}
+                <td className="px-3 py-2 bg-white border-r border-gray-200 sticky left-0 z-10">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-gray-900 truncate max-w-[180px]" title={asset.file_name}>
+                      {asset.file_name}
+                    </span>
+                    {asset.segments.length > 0 && (
+                      <span className="text-xs text-purple-600 flex items-center gap-1">
+                        <Layers className="w-3 h-3" />
+                        {asset.segments.length} segments
+                      </span>
+                    )}
+                  </div>
+                </td>
+
+                {/* Field Cells */}
+                {COLUMN_GROUPS.map((group) => {
+                  if (expandedGroups[group.id]) {
+                    return group.fields.map((fieldPath) => (
+                      <FieldCell
+                        key={fieldPath}
+                        value={getNestedValue(asset as unknown as Record<string, unknown>, fieldPath)}
+                        fieldPath={fieldPath}
+                      />
+                    ))
+                  } else {
+                    // Collapsed: show summary (count of filled fields)
+                    const filledCount = group.fields.filter((fp) =>
+                      hasValue(getNestedValue(asset as unknown as Record<string, unknown>, fp))
+                    ).length
+                    const bgClass =
+                      filledCount === group.fields.length
+                        ? 'bg-green-50'
+                        : filledCount > 0
+                          ? 'bg-yellow-50'
+                          : 'bg-gray-50'
+                    const textClass =
+                      filledCount === group.fields.length
+                        ? 'text-green-600'
+                        : filledCount > 0
+                          ? 'text-yellow-600'
+                          : 'text-gray-400'
+
+                    return (
+                      <td
+                        key={group.id}
+                        className={`px-2 py-2 border-r border-gray-200 text-center ${bgClass}`}
+                      >
+                        <span className={`text-xs font-medium ${textClass}`}>
+                          {filledCount}/{group.fields.length}
+                        </span>
+                      </td>
+                    )
+                  }
+                })}
+
+                {/* Completion Bar */}
+                <td className="px-2 py-2 border-r border-gray-200">
+                  <CompletionBar percentage={completion} compact />
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// =============================================================================
+// Asset Detail Modal Component
+// =============================================================================
+
+interface AssetDetailModalProps {
+  asset: Asset | null
+  onClose: () => void
+}
+
+function AssetDetailModal({ asset, onClose }: AssetDetailModalProps) {
+  if (!asset) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div
+        className="bg-white rounded-lg shadow-xl max-w-4xl max-h-[80vh] overflow-auto w-full mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
           <div>
-            <p className="text-sm text-gray-500">브랜드</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {Object.keys(stats.brand_distribution).length}
-            </p>
+            <h2 className="text-lg font-bold text-gray-900">{asset.file_name}</h2>
+            <p className="text-sm text-gray-500">{asset.file_path_rel}</p>
           </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+          >
+            &times;
+          </button>
         </div>
-      </div>
 
-      {/* Asset Types */}
-      <div className="card p-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-orange-100 rounded-lg">
-            <FileJson className="w-5 h-5 text-orange-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Asset Types</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {Object.keys(stats.asset_type_distribution).length}
-            </p>
-          </div>
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* All Fields by Group */}
+          {COLUMN_GROUPS.map((group) => (
+            <div key={group.id}>
+              <h3 className="font-semibold text-gray-700 mb-2">
+                {group.icon} {group.label}
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {group.fields.map((fieldPath) => {
+                  const value = getNestedValue(asset as unknown as Record<string, unknown>, fieldPath)
+                  const isParsed = hasValue(value)
+
+                  return (
+                    <div
+                      key={fieldPath}
+                      className={`p-2 rounded border ${isParsed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}
+                    >
+                      <div className="text-xs text-gray-500">{getFieldLabel(fieldPath)}</div>
+                      <div className={`text-sm font-medium ${isParsed ? 'text-gray-900' : 'text-gray-400'}`}>
+                        {isParsed ? String(value) : '-'}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* Segments */}
+          {asset.segments.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-2">
+                <Layers className="w-4 h-4 inline mr-1" />
+                Segments ({asset.segments.length})
+              </h3>
+              <div className="space-y-2">
+                {asset.segments.map((seg, idx) => (
+                  <div key={seg.segment_uuid} className="p-3 bg-purple-50 border border-purple-200 rounded">
+                    <div className="font-medium text-purple-900">
+                      Segment {idx + 1}: {seg.title || 'Untitled'}
+                    </div>
+                    <div className="text-sm text-purple-700 mt-1">
+                      {seg.time_in_sec}s - {seg.time_out_sec}s | {seg.segment_type} | {seg.game_type}
+                    </div>
+                    {seg.players && seg.players.length > 0 && (
+                      <div className="text-xs text-purple-600 mt-1">
+                        Players: {seg.players.map((p) => p.name).join(', ')}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-export default function UdmViewer() {
-  const [filters, setFilters] = useState<UdmFilters>({})
-  const [selectedAssetUuid, setSelectedAssetUuid] = useState<string | null>(
-    null
-  )
+// =============================================================================
+// Main UDM Matrix View Component
+// =============================================================================
 
-  // UDM 문서 로드
+export default function UdmViewer() {
+  // State
+  const [filters, setFilters] = useState<UdmFilters>({})
+  const [expandedGroups, setExpandedGroups] = useState<ExpandedGroups>(() => {
+    const initial: ExpandedGroups = {}
+    for (const group of COLUMN_GROUPS) {
+      initial[group.id] = group.defaultExpanded
+    }
+    return initial
+  })
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
+
+  // State for loading from NAS
+  const [isLoadingNas, setIsLoadingNas] = useState(false)
+  const [nasLoadMessage, setNasLoadMessage] = useState<string | null>(null)
+
+  // Queries
   const {
-    data: documentData,
-    isLoading: documentLoading,
-    refetch: refetchDocument,
+    data: assets = [],
+    isLoading,
+    refetch,
   } = useQuery({
-    queryKey: ['udm-document', filters],
-    queryFn: () => fetchUdmDocument(filters),
-    refetchInterval: 30000, // 30초마다 갱신
+    queryKey: ['udm-assets', filters],
+    queryFn: () => fetchUdmAssets(filters),
   })
 
-  // 통계 로드
-  const { data: statsData, isLoading: statsLoading } = useQuery({
+  const { data: stats, refetch: refetchStats } = useQuery({
     queryKey: ['udm-stats'],
     queryFn: fetchUdmStats,
-    refetchInterval: 30000,
   })
 
-  // 브랜드 목록 추출
+  // Handler for loading from NAS
+  const handleLoadFromNas = useCallback(async () => {
+    setIsLoadingNas(true)
+    setNasLoadMessage(null)
+    try {
+      const result = await loadFromNas()
+      setNasLoadMessage(`${result.total_assets}개 파일 로드 완료`)
+      // Refetch data after loading
+      refetch()
+      refetchStats()
+    } catch (error) {
+      setNasLoadMessage('NAS 로드 실패')
+      console.error('Failed to load from NAS:', error)
+    } finally {
+      setIsLoadingNas(false)
+    }
+  }, [refetch, refetchStats])
+
+  // Computed values
   const brands = useMemo(() => {
-    if (!statsData?.brand_distribution) return []
-    return Object.keys(statsData.brand_distribution).sort()
-  }, [statsData])
+    return stats ? Object.keys(stats.by_brand).sort() : []
+  }, [stats])
 
-  // Asset Type 목록 추출
   const assetTypes = useMemo(() => {
-    if (!statsData?.asset_type_distribution) return []
-    return Object.keys(statsData.asset_type_distribution).sort()
-  }, [statsData])
+    return stats ? Object.keys(stats.by_asset_type).sort() : []
+  }, [stats])
 
-  const handleFilterChange = (newFilters: Partial<UdmFilters>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }))
-  }
+  const years = useMemo(() => {
+    return stats ? Object.keys(stats.by_year).map(Number).sort((a, b) => b - a) : []
+  }, [stats])
+
+  const avgCompletion = useMemo(() => {
+    if (assets.length === 0) return 0
+
+    let totalCompletion = 0
+    for (const asset of assets) {
+      let total = 0
+      let filled = 0
+      for (const group of COLUMN_GROUPS) {
+        for (const fieldPath of group.fields) {
+          total++
+          const value = getNestedValue(asset as unknown as Record<string, unknown>, fieldPath)
+          if (hasValue(value)) filled++
+        }
+      }
+      totalCompletion += total > 0 ? (filled / total) * 100 : 0
+    }
+
+    return Math.round(totalCompletion / assets.length)
+  }, [assets])
+
+  const segmentFiles = useMemo(() => {
+    return assets.filter((a) => a.segments.length > 0).length
+  }, [assets])
+
+  // Handlers
+  const handleToggleGroup = useCallback((groupId: string) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }))
+  }, [])
+
+  const handleRowClick = useCallback((asset: Asset) => {
+    setSelectedAsset(asset)
+  }, [])
 
   return (
-    <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">UDM JSON Viewer</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            NAS에서 추출된 UDM 데이터를 JSON 형식으로 조회합니다
-          </p>
+          <h1 className="text-lg font-bold text-gray-900">UDM Matrix View</h1>
+          <p className="text-xs text-gray-500">NAS 파일별 UDM 파싱 현황 매트릭스</p>
         </div>
-        <button
-          onClick={() => refetchDocument()}
-          className="btn-secondary flex items-center space-x-2"
-          disabled={documentLoading}
-        >
-          <RefreshCw
-            className={`w-4 h-4 ${documentLoading ? 'animate-spin' : ''}`}
-          />
-          <span>새로고침</span>
-        </button>
-      </div>
-
-      {/* 통계 카드 */}
-      <StatsOverview stats={statsData || null} loading={statsLoading} />
-
-      {/* 메타데이터 카드 */}
-      {documentData?.metadata && (
-        <div className="card p-4">
-          <div className="flex items-center space-x-4 text-sm">
-            <span className="text-gray-500">
-              버전: <strong>{documentData.metadata.version}</strong>
-            </span>
-            <span className="text-gray-300">|</span>
-            <span className="text-gray-500">
-              소스: <strong>{documentData.metadata.source}</strong>
-            </span>
-            <span className="text-gray-300">|</span>
-            <span className="text-gray-500">
-              생성일:{' '}
-              <strong>
-                {new Date(documentData.metadata.generated_at).toLocaleString()}
-              </strong>
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* 필터 및 검색 */}
-      <div className="card p-4">
-        <div className="flex items-center space-x-4">
-          {/* 검색 */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="파일명으로 검색..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              value={filters.search || ''}
-              onChange={(e) => handleFilterChange({ search: e.target.value })}
-            />
-          </div>
-
-          {/* 브랜드 필터 */}
-          <select
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            value={filters.brand || ''}
-            onChange={(e) =>
-              handleFilterChange({ brand: e.target.value || undefined })
-            }
+        <div className="flex items-center gap-3">
+          {nasLoadMessage && (
+            <span className="text-sm text-green-600">{nasLoadMessage}</span>
+          )}
+          <button
+            onClick={handleLoadFromNas}
+            disabled={isLoadingNas}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50"
           >
-            <option value="">모든 브랜드</option>
-            {brands.map((brand) => (
-              <option key={brand} value={brand}>
-                {brand}
-              </option>
-            ))}
-          </select>
-
-          {/* Asset Type 필터 */}
-          <select
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            value={filters.asset_type || ''}
-            onChange={(e) =>
-              handleFilterChange({ asset_type: e.target.value || undefined })
-            }
-          >
-            <option value="">모든 타입</option>
-            {assetTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-
-          {/* 연도 필터 */}
-          <select
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            value={filters.year || ''}
-            onChange={(e) =>
-              handleFilterChange({
-                year: e.target.value ? Number(e.target.value) : undefined,
-              })
-            }
-          >
-            <option value="">모든 연도</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
-          </select>
+            {isLoadingNas ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            NAS 스캔
+          </button>
+          <button className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600">
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
         </div>
       </div>
 
-      {/* Asset 목록 */}
-      <div className="space-y-3">
-        {documentLoading ? (
-          // 로딩 스켈레톤
-          [...Array(5)].map((_, i) => (
-            <div key={i} className="card p-6 animate-pulse">
-              <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </div>
-          ))
-        ) : !documentData?.assets.length ? (
-          <div className="card p-12 text-center">
-            <FileJson className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">표시할 Asset이 없습니다.</p>
-          </div>
-        ) : (
-          documentData.assets.map((asset) => (
-            <AssetRow
-              key={asset.asset_uuid}
-              asset={asset}
-              onViewDetail={setSelectedAssetUuid}
-            />
-          ))
-        )}
-      </div>
+      {/* Filter Bar */}
+      <FilterBar
+        filters={filters}
+        onFilterChange={setFilters}
+        onRefresh={() => refetch()}
+        brands={brands}
+        assetTypes={assetTypes}
+        years={years}
+      />
 
-      {/* 결과 요약 */}
-      {!documentLoading && documentData && documentData.assets.length > 0 && (
-        <div className="text-sm text-gray-500 text-center">
-          총 {documentData.assets.length}개의 Asset
+      {/* Stats Bar */}
+      <StatsBar
+        totalFiles={assets.length}
+        avgCompletion={avgCompletion}
+        totalBrands={brands.length}
+        segmentFiles={segmentFiles}
+      />
+
+      {/* Matrix Table */}
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
         </div>
-      )}
-
-      {/* 상세 모달 */}
-      {selectedAssetUuid && (
-        <AssetDetailModal
-          assetUuid={selectedAssetUuid}
-          onClose={() => setSelectedAssetUuid(null)}
+      ) : assets.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center text-gray-400">
+          <div className="text-center">
+            <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p>데이터가 없습니다</p>
+            <p className="text-sm">필터를 조정하거나 데이터를 로드해주세요</p>
+          </div>
+        </div>
+      ) : (
+        <MatrixTable
+          assets={assets}
+          expandedGroups={expandedGroups}
+          onToggleGroup={handleToggleGroup}
+          onRowClick={handleRowClick}
+          selectedAssetId={selectedAsset?.asset_uuid}
         />
       )}
+
+      {/* Asset Detail Modal */}
+      <AssetDetailModal asset={selectedAsset} onClose={() => setSelectedAsset(null)} />
     </div>
   )
 }

@@ -143,9 +143,51 @@ PAD_S13_EP01_*.mp4      → PAD Episode
 10-wsop-2024-be-ev-21-* → WSOP Mastered
 ```
 
+## Agents
+
+### UDM Engineer (전담 에이전트)
+
+UDM 관련 모든 작업은 `udm-engineer` 에이전트를 사용합니다.
+
+```
+"Use the udm-engineer agent to [task]"
+```
+
+**에이전트 파일**: `.claude/agents/udm-engineer.md`
+
+**책임 영역**:
+
+| Block | 책임 | 에이전트 담당 |
+|-------|------|-------------|
+| INGEST | NAS 스캔, Sheets 로드 | O |
+| TRANSFORM | UDM 변환 (★핵심) | O |
+| VALIDATE | 스키마/BR 검증 | O |
+| EXPORT | JSON/CSV 출력 | O |
+| PROFILE | 매핑 프로파일 관리 | O |
+
+**사용 예시**:
+- "NAS 파일을 UDM으로 변환해줘"
+- "Google Sheets 데이터를 Segment로 매핑해줘"
+- "UDM 검증 규칙 BR-001 확인해줘"
+- "파일명 파싱 패턴 추가해줘"
+
+## Data Sources
+
+### NAS Storage (Primary)
+- **경로**: `//10.10.100.122/docker/GGPNAs/ARCHIVE/`
+- **파일 수**: 1,381개
+- **브랜드**: WSOP(1,286), PAD(44), GOG(27), GGMillions(13), MPP(11)
+
+### Google Sheets (Metadata)
+| Sheet | ID | Records |
+|-------|-----|---------|
+| Archive Metadata | `1_RN_W_ZQclSZA0Iez6XniCXVtjkkd5HNZwiT6l-z6d4` | 38 |
+| Iconik Metadata | `1pUMPKe-OsKc-Xd8lH1cP9ctJO4hj3keXY5RwNFp2Mtk` | 200+ |
+
 ## Related Documents
 
 - `docs/PROJECT_STATUS.md` - 프로젝트 현황
 - `docs/API_ARCHITECTURE.md` - API 아키텍처 다이어그램
 - `prds/PRD-0008-UDM-FINAL-SCHEMA.md` - UDM v3.1 스키마 명세
 - `profiles/README.md` - 프로파일 가이드
+- `.claude/agents/udm-engineer.md` - UDM 전담 에이전트
