@@ -5,14 +5,14 @@ from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QLineEdit, QComboBox,
     QTableWidget, QTableWidgetItem, QHeaderView,
-    QCheckBox, QProgressBar, QStatusBar, QMessageBox,
-    QSplitter, QFrame, QAbstractItemView
+    QCheckBox, QMessageBox,
+    QAbstractItemView
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QAction
 
 from ..core.database import Database
-from ..models.video import Video, VideoStatus
+from ..models.video import VideoStatus
 from .download_dialog import DownloadDialog
 from .settings_dialog import SettingsDialog
 
@@ -526,7 +526,7 @@ class MainWindow(QMainWindow):
 
         # Refresh after fetching
         self.load_videos()
-        self.statusBar().showMessage(f"HLS URLs fetched", 3000)
+        self.statusBar().showMessage("HLS URLs fetched", 3000)
 
     def start_download(self):
         """Start downloading selected videos"""

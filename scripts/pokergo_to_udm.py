@@ -16,15 +16,10 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.models.udm import (
-    Asset,
     AssetType,
     Brand,
-    EventContext,
     EventType,
     GameVariant,
-    Location,
-    SourceOrigin,
-    TechSpec,
 )
 
 DATA_DIR = Path(__file__).parent.parent / "data" / "pokergo"
@@ -250,11 +245,11 @@ def convert_all_videos(input_file: str = None, output_file: str = None):
         json.dump(output_data, f, ensure_ascii=False, indent=2)
 
     print(f"\n{'='*60}")
-    print(f"[SUCCESS] UDM 변환 완료!")
+    print("[SUCCESS] UDM 변환 완료!")
     print(f"{'='*60}")
     print(f"  출력 파일: {output_path}")
     print(f"  총 Asset 수: {len(assets)}개")
-    print(f"\n[브랜드별 분포]")
+    print("\n[브랜드별 분포]")
     for brand, count in sorted(brand_counts.items(), key=lambda x: -x[1]):
         print(f"  - {brand}: {count}개")
 

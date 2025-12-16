@@ -54,7 +54,7 @@ async def collect_videos_from_page(page, source_name: str) -> int:
             try:
                 title_el = link.locator("h2, h3, h4, [class*='title'], [class*='Title']").first
                 title = await title_el.text_content(timeout=1000)
-            except:
+            except Exception:
                 pass
 
             # 썸네일
@@ -62,7 +62,7 @@ async def collect_videos_from_page(page, source_name: str) -> int:
             try:
                 img = link.locator("img").first
                 thumbnail = await img.get_attribute("src", timeout=1000)
-            except:
+            except Exception:
                 pass
 
             all_videos.append({
@@ -74,7 +74,7 @@ async def collect_videos_from_page(page, source_name: str) -> int:
             })
             added += 1
 
-        except Exception as e:
+        except Exception:
             continue
 
     return added
@@ -106,7 +106,7 @@ async def find_sub_collections(page) -> list:
             try:
                 name = await link.text_content(timeout=1000)
                 name = (name or "").strip()
-            except:
+            except Exception:
                 name = href.split("/")[-1]
 
             sub_collections.append({
@@ -114,7 +114,7 @@ async def find_sub_collections(page) -> list:
                 "name": name,
             })
 
-        except:
+        except Exception:
             continue
 
     return sub_collections
@@ -266,10 +266,10 @@ async def main():
         print(f"{'='*60}")
         print(f"  File: {output_file}")
         print(f"  Total: {len(all_videos)} videos")
-        print(f"\n[BY CATEGORY]")
+        print("\n[BY CATEGORY]")
         for c, count in sorted(cat_counts.items()):
             print(f"  {c}: {count}")
-        print(f"\n[BY YEAR]")
+        print("\n[BY YEAR]")
         for y, c in sorted(year_counts.items(), key=lambda x: str(x[0]), reverse=True):
             print(f"  {y}: {c}")
 

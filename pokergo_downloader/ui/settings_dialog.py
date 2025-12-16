@@ -2,11 +2,9 @@
 
 from pathlib import Path
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel,
-    QLineEdit, QPushButton, QFileDialog, QGroupBox,
+    QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QFileDialog, QGroupBox,
     QFormLayout, QSpinBox, QComboBox, QMessageBox
 )
-from PyQt6.QtCore import Qt
 
 from ..core.database import Database
 

@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel,
     QProgressBar, QPushButton, QTextEdit, QMessageBox
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 
 from ..core.database import Database
 from ..core.scraper import PokerGOScraper
@@ -61,10 +61,10 @@ class FetchWorker(QThread):
 
                 if hls_url:
                     self.video_completed.emit(video.id, hls_url, True)
-                    self.log_message.emit(f"  -> Found HLS URL")
+                    self.log_message.emit("  -> Found HLS URL")
                 else:
                     self.video_completed.emit(video.id, "", False)
-                    self.log_message.emit(f"  -> No HLS URL found")
+                    self.log_message.emit("  -> No HLS URL found")
 
                 # Small delay
                 await asyncio.sleep(0.5)

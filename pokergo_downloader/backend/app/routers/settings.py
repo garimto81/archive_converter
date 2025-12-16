@@ -1,6 +1,6 @@
 """Settings API Router"""
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter
 
 from ..models.settings import (
     SettingsUpdate,

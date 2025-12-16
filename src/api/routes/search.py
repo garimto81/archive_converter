@@ -8,8 +8,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from ..dependencies import get_pagination_params
-from ..schemas import PaginationParams, SearchParams, SearchResponse
+from ..schemas import SearchParams, SearchResponse
 
 router = APIRouter(
     prefix="/api/v1/search",

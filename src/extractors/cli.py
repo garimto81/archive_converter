@@ -112,17 +112,17 @@ def cmd_extract(args):
 
         # 결과 출력
         print("\n📊 Extraction Result:")
-        print(f"\n  Scan Phase:")
+        print("\n  Scan Phase:")
         print(f"    Files scanned:  {result['scan']['total_files']:,}")
         print(f"    Video files:    {result['scan']['video_files']:,}")
         print(f"    Total size:     {result['scan']['total_size_gb']:.2f} GB")
 
-        print(f"\n  Transform Phase:")
+        print("\n  Transform Phase:")
         print(f"    Success:        {result['transform']['success']:,}")
         print(f"    Failed:         {result['transform']['failed']:,}")
 
-        print(f"\n  Export Phase:")
-        print(f"    Output files:")
+        print("\n  Export Phase:")
+        print("    Output files:")
         for f in result['export']['files']:
             print(f"      - {f}")
 

@@ -3,7 +3,6 @@
 from typing import List
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 
-from ..models.video import VideoStatus
 from ..services.database import get_db
 from ..services.hls_fetcher import get_hls_fetcher
 

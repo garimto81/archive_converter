@@ -322,7 +322,7 @@ class Database:
         if video_data.get("year"):
             try:
                 return int(video_data["year"])
-            except:
+            except (ValueError, TypeError):
                 pass
 
         url = video_data.get("url", "")

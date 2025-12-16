@@ -2,7 +2,6 @@
 
 import re
 import asyncio
-from pathlib import Path
 from typing import Optional, List, Dict, Callable
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 
@@ -88,7 +87,7 @@ class PokerGOScraper:
                 if play_btn:
                     await play_btn.click()
                     await self.page.wait_for_timeout(3000)
-            except:
+            except Exception:
                 pass
 
             # Method 1: Check captured URLs for JWPlayer media ID
@@ -144,7 +143,7 @@ class PokerGOScraper:
             # Remove listener
             try:
                 self.page.remove_listener("response", capture_response)
-            except:
+            except Exception:
                 pass
 
     async def batch_get_hls_urls(

@@ -8,11 +8,9 @@ import uuid
 import hashlib
 from datetime import datetime
 from dataclasses import dataclass, field
-from pathlib import Path
 
 from ..models.udm import (
     Asset,
-    Segment,
     Brand,
     AssetType,
     TechSpec,

@@ -8,10 +8,9 @@ import os
 import hashlib
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator, Literal
+from typing import Iterator
 from dataclasses import dataclass, field
 
-from pydantic import BaseModel, Field
 
 
 @dataclass
@@ -183,7 +182,7 @@ class NasScanner:
                     if max_files and count >= max_files:
                         return
 
-                except (OSError, PermissionError) as e:
+                except (OSError, PermissionError):
                     # 접근 불가 파일 건너뛰기
                     continue
 

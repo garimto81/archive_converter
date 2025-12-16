@@ -9,7 +9,6 @@ NAS 파일 필터링
 
 import subprocess
 import json
-import re
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -38,7 +37,7 @@ def get_video_duration(file_path: str) -> float:
             data = json.loads(result.stdout)
             duration = float(data.get('format', {}).get('duration', 0))
             return duration
-    except Exception as e:
+    except Exception:
         pass
     return 0
 
@@ -55,7 +54,6 @@ def should_exclude(path: str) -> bool:
 def scan_and_filter():
     """NAS 스캔 및 필터링"""
     all_files = []
-    filtered_files = []
 
     print("[1/3] Scanning NAS files...")
 
@@ -99,7 +97,7 @@ def scan_and_filter():
     print(f"  Remaining for duration check: {len(size_filtered)}")
 
     # 재생시간 필터 (병렬 처리)
-    print(f"\n  Checking duration (this may take a while)...")
+    print("\n  Checking duration (this may take a while)...")
 
     final_results = []
     excluded_duration = 0
@@ -144,7 +142,7 @@ def main():
     print("=" * 60)
     print("NAS File Filter")
     print("=" * 60)
-    print(f"\nFilter criteria:")
+    print("\nFilter criteria:")
     print(f"  - Size: <= {MAX_SIZE_GB} GB")
     print(f"  - Duration: <= {MAX_DURATION_HOURS} hour")
     print(f"  - Exclude keywords: {', '.join(EXCLUDE_KEYWORDS)}")
@@ -157,12 +155,12 @@ def main():
     print("RESULTS")
     print("=" * 60)
 
-    print(f"\n[Statistics]")
+    print("\n[Statistics]")
     print(f"  Total scanned: {stats['total']}")
     print(f"  Excluded (keywords): {stats['excluded_keyword']}")
     print(f"  Excluded (size>1GB): {stats['excluded_size']}")
     print(f"  Excluded (duration>1h): {stats['excluded_duration']}")
-    print(f"  ─────────────────────")
+    print("  ─────────────────────")
     print(f"  Final count: {stats['final']}")
 
     # 연도별 통계
@@ -177,7 +175,7 @@ def main():
         year = year or 'unknown'
         by_year[year] = by_year.get(year, 0) + 1
 
-    print(f"\n[By Year]")
+    print("\n[By Year]")
     for y in sorted([k for k in by_year.keys() if k != 'unknown'], reverse=True):
         print(f"  {y}: {by_year[y]}")
     if 'unknown' in by_year:
@@ -214,11 +212,11 @@ def main():
             'files': output_data,
         }, f, ensure_ascii=False, indent=2)
 
-    print(f"\n[Output]")
+    print("\n[Output]")
     print(f"  Saved to: {output_file}")
 
     # 샘플 출력
-    print(f"\n[Sample files (first 10)]")
+    print("\n[Sample files (first 10)]")
     for r in output_data[:10]:
         print(f"  {r['filename']}")
         print(f"    Size: {r['size_gb']:.2f}GB, Duration: {r['duration_min']:.0f}min")

@@ -10,8 +10,6 @@ PokerGO WSOP 데이터와 NAS 파일 매칭
 
 import json
 import re
-import os
-from datetime import datetime
 from pathlib import Path
 from difflib import SequenceMatcher
 
@@ -419,7 +417,7 @@ def main():
     print("=" * 60)
 
     # NAS 파일 스캔
-    print(f"\n[1/4] Scanning NAS files...")
+    print("\n[1/4] Scanning NAS files...")
     nas_files = scan_nas_files()
     print(f"  Found {len(nas_files)} files on NAS")
 
@@ -428,17 +426,17 @@ def main():
     for f in nas_files:
         y = f.get('year', 'unknown')
         nas_by_year[y] = nas_by_year.get(y, 0) + 1
-    print(f"\n  NAS files by year:")
+    print("\n  NAS files by year:")
     for y in sorted([k for k in nas_by_year.keys() if k and k != 'unknown'], reverse=True)[:10]:
         print(f"    {y}: {nas_by_year[y]}")
 
     # PokerGO 데이터 로드
-    print(f"\n[2/4] Loading PokerGO data...")
+    print("\n[2/4] Loading PokerGO data...")
     videos = load_pokergo_data(json_path)
     print(f"  Loaded {len(videos)} videos")
 
     # 처리 및 매칭
-    print(f"\n[3/4] Processing and matching...")
+    print("\n[3/4] Processing and matching...")
     pokergo_results, unmatched_nas, matched_paths = process_and_match(videos, nas_files)
 
     # 통계
@@ -446,7 +444,7 @@ def main():
     not_found = sum(1 for x in pokergo_results if x['match_status'] == 'NOT_FOUND')
     nas_only = len(unmatched_nas)
 
-    print(f"\n  Matching Results:")
+    print("\n  Matching Results:")
     print(f"    MATCHED: {matched}")
     print(f"    NOT_FOUND (PokerGO only): {not_found}")
     print(f"    NAS_ONLY (no PokerGO match): {nas_only}")
@@ -461,7 +459,7 @@ def main():
         if item['match_status'] == 'MATCHED':
             by_year[y]['matched'] += 1
 
-    print(f"\n  PokerGO By Year:")
+    print("\n  PokerGO By Year:")
     for y in sorted([k for k in by_year.keys() if k], reverse=True):
         stats = by_year[y]
         rate = stats['matched']/stats['total']*100 if stats['total'] > 0 else 0
@@ -473,7 +471,7 @@ def main():
         y = item['year']
         nas_by_year[y] = nas_by_year.get(y, 0) + 1
 
-    print(f"\n  NAS Only By Year:")
+    print("\n  NAS Only By Year:")
     for y in sorted([k for k in nas_by_year.keys() if k], reverse=True)[:10]:
         print(f"    {y}: {nas_by_year[y]}")
 
@@ -481,7 +479,7 @@ def main():
     all_data = pokergo_results + unmatched_nas
 
     # 업로드
-    print(f"\n[4/4] Uploading to Google Sheets...")
+    print("\n[4/4] Uploading to Google Sheets...")
     print(f"  Total rows: {len(all_data)} (PokerGO: {len(pokergo_results)}, NAS Only: {len(unmatched_nas)})")
     upload_to_sheets(all_data, sheet_id, "WSOP NAS Matching")
 

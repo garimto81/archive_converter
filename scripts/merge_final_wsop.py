@@ -147,10 +147,10 @@ def merge_all():
     print(f"{'='*60}")
     print(f"  File: {output_file}")
     print(f"  Total: {len(videos)} videos")
-    print(f"\n[BY CATEGORY]")
+    print("\n[BY CATEGORY]")
     for c, count in sorted(cat_counts.items()):
         print(f"  {c}: {count}")
-    print(f"\n[BY YEAR]")
+    print("\n[BY YEAR]")
     valid_years = [k for k in year_counts.keys() if k and k != 'unknown' and str(k).isdigit()]
     for y in sorted(valid_years, key=lambda x: int(x), reverse=True):
         print(f"  {y}: {year_counts[y]}")

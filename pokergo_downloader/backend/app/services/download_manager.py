@@ -5,7 +5,7 @@ import subprocess
 import re
 from pathlib import Path
 from typing import List, Optional, Dict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..config import settings
 from ..models.download import DownloadQueueItem, DownloadQueueResponse, DownloadStatus
@@ -150,7 +150,7 @@ class DownloadManager:
                                 task.eta,
                                 task.status.value,
                             )
-                    except:
+                    except Exception:
                         pass
 
             await task.process.wait()
@@ -233,7 +233,7 @@ class DownloadManager:
                 elif "K" in unit:
                     return value * 1024
                 return value
-        except:
+        except (ValueError, IndexError):
             pass
         return 0
 
@@ -247,7 +247,7 @@ class DownloadManager:
                 return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
             elif len(parts) == 2:
                 return int(parts[0]) * 60 + int(parts[1])
-        except:
+        except (ValueError, IndexError):
             pass
         return 0
 

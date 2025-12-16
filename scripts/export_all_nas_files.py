@@ -10,9 +10,7 @@
   - [x] 1GB 초과
 """
 
-import json
 import re
-from datetime import datetime
 from pathlib import Path
 
 try:
@@ -189,7 +187,7 @@ def main():
     print(f"Max size: {MAX_SIZE_GB}GB")
 
     # 스캔
-    print(f"\n[1/2] Scanning NAS files...")
+    print("\n[1/2] Scanning NAS files...")
     all_files = scan_all_nas_files()
     print(f"  Total files: {len(all_files)}")
 
@@ -197,7 +195,7 @@ def main():
     excluded = sum(1 for f in all_files if f['is_excluded'])
     included = len(all_files) - excluded
 
-    print(f"\n  Statistics:")
+    print("\n  Statistics:")
     print(f"    Excluded: {excluded}")
     print(f"    Included: {included}")
 
@@ -209,7 +207,7 @@ def main():
                 if reason:
                     reason_counts[reason] = reason_counts.get(reason, 0) + 1
 
-    print(f"\n  Exclude Reasons:")
+    print("\n  Exclude Reasons:")
     for reason, count in sorted(reason_counts.items(), key=lambda x: -x[1]):
         print(f"    {reason}: {count}")
 
@@ -223,7 +221,7 @@ def main():
         if f['is_excluded']:
             by_year[y]['excluded'] += 1
 
-    print(f"\n  By Year (top 15):")
+    print("\n  By Year (top 15):")
     for y in sorted([k for k in by_year.keys() if k != 'unknown'], reverse=True)[:15]:
         stats = by_year[y]
         print(f"    {y}: {stats['total']} (excluded: {stats['excluded']})")
@@ -237,7 +235,7 @@ def main():
     all_files.sort(key=sort_key)
 
     # 업로드
-    print(f"\n[2/2] Uploading to Google Sheets...")
+    print("\n[2/2] Uploading to Google Sheets...")
     upload_to_sheets(all_files, sheet_id, "NAS All Files")
 
     print("\n" + "=" * 60)

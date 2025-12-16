@@ -7,7 +7,6 @@ PokerGO 전체 스크래퍼
 import asyncio
 import json
 import os
-import re
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
@@ -52,7 +51,7 @@ class PokerGoFullScraper:
         # 모든 응답 캡처
         self.page.on("response", self._capture_response)
 
-        print(f"[INFO] 브라우저 시작")
+        print("[INFO] 브라우저 시작")
 
     async def _capture_response(self, response):
         """모든 API 응답 캡처"""
@@ -67,7 +66,7 @@ class PokerGoFullScraper:
                         "url": url,
                         "data": data,
                     })
-            except:
+            except Exception:
                 pass
 
     async def close(self):
@@ -361,11 +360,11 @@ class PokerGoFullScraper:
             json.dump(self.all_api_responses, f, ensure_ascii=False, indent=2)
 
         print(f"\n{'='*60}")
-        print(f"[SUCCESS] 스크래핑 완료!")
+        print("[SUCCESS] 스크래핑 완료!")
         print(f"{'='*60}")
         print(f"  메인 파일: {main_file}")
         print(f"  API 파일: {api_file}")
-        print(f"\n[통계]")
+        print("\n[통계]")
         print(f"  - 쇼: {len(self.collected_data['shows'])}개")
         print(f"  - 비디오: {len(self.collected_data['videos'])}개")
         print(f"  - API 응답: {len(self.all_api_responses)}개")

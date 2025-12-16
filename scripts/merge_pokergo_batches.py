@@ -57,7 +57,7 @@ def merge_batch_files():
         json.dump(output_data, f, ensure_ascii=False, indent=2)
 
     print(f"\n{'='*60}")
-    print(f"[SUCCESS] 병합 완료!")
+    print("[SUCCESS] 병합 완료!")
     print(f"{'='*60}")
     print(f"  출력 파일: {output_file}")
     print(f"  총 비디오 수: {len(all_videos)}개")
@@ -68,7 +68,7 @@ def merge_batch_files():
     show_count = sum(1 for v in all_videos if v.get("show_name"))
     event_count = sum(1 for v in all_videos if v.get("event"))
 
-    print(f"\n[통계]")
+    print("\n[통계]")
     print(f"  - 제목 있음: {titles_count}개")
     print(f"  - 설명 있음: {desc_count}개")
     print(f"  - 쇼 정보 있음: {show_count}개")

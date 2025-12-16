@@ -4,9 +4,9 @@ FastAPI 공통 의존성
 DB 세션, 페이징, 인증 등
 """
 
-from typing import Annotated, Optional
+from typing import Annotated
 
-from fastapi import Depends, Query
+from fastapi import Query
 
 from .schemas.common import PaginationParams
 

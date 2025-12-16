@@ -93,7 +93,7 @@ async def main():
                 play_btn = page.locator('button[aria-label*="Play"], [class*="play"], video')
                 try:
                     await play_btn.first.click(timeout=3000)
-                except:
+                except Exception:
                     pass
 
                 await asyncio.sleep(3)
@@ -114,7 +114,7 @@ async def main():
                 if processed % 10 == 0:
                     print(f"  Processed: {processed}/{len(videos)} (HLS found: {found_hls})")
 
-            except Exception as e:
+            except Exception:
                 video["hls_url"] = ""
                 if processed % 10 == 0:
                     print(f"  Processed: {processed}/{len(videos)} (HLS found: {found_hls})")

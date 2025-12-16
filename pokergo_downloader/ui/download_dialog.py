@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QProgressBar, QPushButton, QTextEdit, QListWidget,
     QListWidgetItem, QFrame, QMessageBox
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer
+from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtGui import QColor
 
 from ..core.database import Database
@@ -136,7 +136,7 @@ class DownloadWorker(QThread):
                         eta = self._parse_eta(eta_str)
 
                         self.progress_updated.emit(video.id, progress, speed, eta)
-                    except:
+                    except (ValueError, IndexError):
                         pass
 
             self.current_process.wait()
@@ -174,7 +174,7 @@ class DownloadWorker(QThread):
                 elif "K" in unit:
                     return value * 1024
                 return value
-        except:
+        except (ValueError, AttributeError):
             pass
         return 0
 
@@ -190,7 +190,7 @@ class DownloadWorker(QThread):
                 return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
             elif len(parts) == 2:
                 return int(parts[0]) * 60 + int(parts[1])
-        except:
+        except (ValueError, IndexError):
             pass
         return 0
 

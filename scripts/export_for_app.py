@@ -112,7 +112,7 @@ def main():
         show = v["show"]
         by_show[show] = by_show.get(show, 0) + 1
 
-    print(f"\n[BY SHOW]")
+    print("\n[BY SHOW]")
     for show, count in sorted(by_show.items()):
         print(f"  {show}: {count}")
 

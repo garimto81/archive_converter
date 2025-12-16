@@ -7,7 +7,6 @@ PokerGO 비디오 상세 스크래퍼
 import asyncio
 import json
 import os
-import re
 from datetime import datetime
 from pathlib import Path
 from dotenv import load_dotenv
@@ -43,7 +42,7 @@ class PokerGoDetailScraper:
             viewport={"width": 1920, "height": 1080}
         )
         self.page = await context.new_page()
-        print(f"[INFO] 브라우저 시작")
+        print("[INFO] 브라우저 시작")
 
     async def close(self):
         """브라우저 종료"""
@@ -285,7 +284,7 @@ class PokerGoDetailScraper:
             # 속도 조절
             await asyncio.sleep(1)
 
-        print(f"\n[INFO] 스크래핑 완료")
+        print("\n[INFO] 스크래핑 완료")
         print(f"  - 성공: {len(self.videos_with_details) - len(self.failed_urls)}개")
         print(f"  - 실패: {len(self.failed_urls)}개")
 
@@ -307,7 +306,7 @@ class PokerGoDetailScraper:
             json.dump(output, f, ensure_ascii=False, indent=2)
 
         print(f"\n{'='*60}")
-        print(f"[SUCCESS] 저장 완료!")
+        print("[SUCCESS] 저장 완료!")
         print(f"{'='*60}")
         print(f"  파일: {output_file}")
         print(f"  비디오 수: {len(self.videos_with_details)}개")
@@ -317,7 +316,7 @@ class PokerGoDetailScraper:
         desc_count = sum(1 for v in self.videos_with_details if v.get("description"))
         show_count = sum(1 for v in self.videos_with_details if v.get("show_name"))
 
-        print(f"\n[통계]")
+        print("\n[통계]")
         print(f"  - 제목 있음: {titles_count}개")
         print(f"  - 설명 있음: {desc_count}개")
         print(f"  - 쇼 정보 있음: {show_count}개")

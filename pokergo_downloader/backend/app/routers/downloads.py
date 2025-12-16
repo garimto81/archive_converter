@@ -1,13 +1,10 @@
 """Downloads API Router"""
 
-from typing import List
 from fastapi import APIRouter, HTTPException
 
 from ..models.download import (
     DownloadRequest,
-    DownloadQueueItem,
     DownloadQueueResponse,
-    DownloadStatus,
 )
 from ..services.download_manager import get_download_manager
 

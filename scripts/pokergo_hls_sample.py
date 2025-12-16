@@ -74,7 +74,7 @@ async def main():
                     play_btn = page.locator('[class*="play"], button[aria-label*="Play"]').first
                     await play_btn.click(timeout=3000)
                     await asyncio.sleep(3)
-                except:
+                except Exception:
                     pass
 
                 # 페이지 소스에서 m3u8 찾기

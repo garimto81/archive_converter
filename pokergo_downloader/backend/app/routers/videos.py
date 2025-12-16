@@ -1,6 +1,6 @@
 """Videos API Router"""
 
-from typing import Optional, List
+from typing import Optional
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from pathlib import Path
 import json
@@ -164,9 +164,8 @@ async def import_videos(file: UploadFile = File(...)):
 
         # Import Video model from core module
         import sys
-        from pathlib import Path
         sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent.parent))
-        from pokergo_downloader.models.video import Video as DBVideo, VideoStatus as DBVideoStatus
+        from pokergo_downloader.models.video import Video as DBVideo
 
         db_video = DBVideo(
             id=video_id,

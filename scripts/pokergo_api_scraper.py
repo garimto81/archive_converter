@@ -78,7 +78,7 @@ class PokerGoApiScraper:
                                 if "token" in data["data"]:
                                     self.auth_token = data["data"]["token"]
 
-            except Exception as e:
+            except Exception:
                 pass
 
     async def close(self):
@@ -402,10 +402,10 @@ class PokerGoApiScraper:
         with open(api_file, "w", encoding="utf-8") as f:
             json.dump(self.api_responses, f, ensure_ascii=False, indent=2)
 
-        print(f"\n[SUCCESS] 데이터 저장 완료!")
+        print("\n[SUCCESS] 데이터 저장 완료!")
         print(f"  - 메인 파일: {output_file}")
         print(f"  - API 응답: {api_file}")
-        print(f"\n[통계]")
+        print("\n[통계]")
         print(f"  - 쇼: {len(self.collected_data['shows'])}개")
         print(f"  - 비디오: {len(self.collected_data['videos'])}개")
         print(f"  - 이벤트: {len(self.collected_data['events'])}개")

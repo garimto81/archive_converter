@@ -5,7 +5,6 @@ from typing import List, Optional
 from playwright.async_api import async_playwright
 
 from .database import get_db
-from ..config import settings
 
 
 async def test_login(email: str, password: str) -> bool:
@@ -144,7 +143,7 @@ class HLSFetcher:
                 if play_btn:
                     await play_btn.click()
                     await page.wait_for_timeout(3000)
-            except:
+            except Exception:
                 pass
 
             # Check captured URLs for JWPlayer media ID
@@ -194,7 +193,7 @@ class HLSFetcher:
         finally:
             try:
                 page.remove_listener("response", capture_response)
-            except:
+            except Exception:
                 pass
 
     def cancel(self):

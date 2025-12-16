@@ -10,9 +10,8 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Literal
 
-from pydantic import BaseModel
 
-from ..models.udm import Asset, UDMDocument, UDMMetadata, generate_json_schema
+from ..models.udm import Asset, generate_json_schema
 
 
 @dataclass
