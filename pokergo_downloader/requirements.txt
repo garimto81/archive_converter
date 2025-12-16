@@ -1,0 +1,23 @@
+# PokerGO Downloader - Dependencies
+# For standalone application packaging
+
+# GUI Framework
+PyQt6>=6.6.0
+PyQt6-Qt6>=6.6.0
+PyQt6-sip>=13.6.0
+
+# Database (SQLite built-in, but need these for migrations)
+# sqlite3 is included in Python standard library
+
+# Async support
+asyncio-throttle>=1.0.0
+
+# Playwright for HLS URL extraction (optional, needs browser install)
+playwright>=1.41.0
+
+# HTTP client
+httpx>=0.26.0
+requests>=2.31.0
+
+# Build/Packaging
+pyinstaller>=6.3.0

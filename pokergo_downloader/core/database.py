@@ -1,5 +1,6 @@
 """SQLite Database Manager"""
 
+import sys
 import sqlite3
 import json
 from pathlib import Path
@@ -10,12 +11,23 @@ from contextlib import contextmanager
 from ..models.video import Video, VideoStatus
 
 
+def get_app_path() -> Path:
+    """Get the application base path (works for both dev and PyInstaller)"""
+    if getattr(sys, 'frozen', False):
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        # But for data files, we want the executable's directory
+        return Path(sys.executable).parent
+    else:
+        # Development environment
+        return Path(__file__).parent.parent.parent
+
+
 class Database:
     """SQLite database manager for PokerGO Downloader"""
 
     def __init__(self, db_path: Optional[Path] = None):
         if db_path is None:
-            db_path = Path(__file__).parent.parent.parent / "data" / "pokergo" / "pokergo.db"
+            db_path = get_app_path() / "data" / "pokergo" / "pokergo.db"
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
